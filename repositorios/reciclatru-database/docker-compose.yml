@@ -1,0 +1,41 @@
+# PostgreSQL local para desarrollo y pruebas. Neon se usa solo para los entornos alojados.
+#
+#   docker compose up -d db          # levanta PostgreSQL
+#   docker compose run --rm flyway   # aplica las migraciones
+#   docker compose down -v           # borra todo y empieza de cero
+
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: reciclatru
+      POSTGRES_USER: reciclatru
+      POSTGRES_PASSWORD: reciclatru
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reciclatru -d reciclatru"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  flyway:
+    image: flyway/flyway:11
+    profiles: ["tools"]
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      FLYWAY_URL: jdbc:postgresql://db:5432/reciclatru
+      FLYWAY_USER: reciclatru
+      FLYWAY_PASSWORD: reciclatru
+    volumes:
+      - ./migrations:/flyway/migrations:ro
+      - ./flyway.conf:/flyway/conf/flyway.conf:ro
+      - ./seeds:/flyway/seeds:ro
+    command: -configFiles=/flyway/conf/flyway.conf migrate
+
+volumes:
+  pgdata:
