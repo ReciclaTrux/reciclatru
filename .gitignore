@@ -1,0 +1,22 @@
+# Node / NestJS
+node_modules/
+dist/
+coverage/
+.env
+
+# Uploads locales
+repositorios/reciclatru-api/uploads/*
+!repositorios/reciclatru-api/uploads/.gitkeep
+
+# IDE / SO
+.idea/
+.vscode/
+*.log
+.DS_Store
+Thumbs.db
+
+# Agentes de IA: subir solo comandos compartidos
+.opencode/*
+!.opencode/command/
+!.opencode/commands/
+.claude/settings.local.json
