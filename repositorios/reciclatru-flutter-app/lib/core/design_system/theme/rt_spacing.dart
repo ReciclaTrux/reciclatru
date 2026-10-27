@@ -40,4 +40,27 @@ abstract final class RtSize {
   /// Diámetros de [RtSpinner] (`components/RtSpinner/README.md`).
   static const double spinnerSmall = 20;
   static const double spinnerLarge = 32;
+
+  /// Ancho máximo de `RtConfirmDialog` (`.rt-dialog`).
+  static const double dialogMaxWidth = 328;
+
+  /// Círculo e ícono de `RtErrorState` (`.rt-state__icon`).
+  static const double stateIcon = 72;
+  static const double stateIconGlyph = 36;
+
+  /// Ancho máximo del mensaje de `RtErrorState` (`.rt-state__body`).
+  static const double stateMessageMaxWidth = 280;
+
+  /// Alto de `RtMapPicker` (`.rt-map`).
+  static const double mapHeight = 420;
+
+  /// Pin de `RtMapPicker` (`.rt-map__pin .rt-icon`).
+  static const double mapPin = 48;
+
+  /// Píldora del destino de `RtBottomNav` (`.rt-navitem__pill`).
+  static const double navPillWidth = 64;
+  static const double navPillHeight = 32;
+
+  /// Radio de la opción de `RtRoleSelector` (`.rt-role__radio`).
+  static const double roleRadio = 22;
 }

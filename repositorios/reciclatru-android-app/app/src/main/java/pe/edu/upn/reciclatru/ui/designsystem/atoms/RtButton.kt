@@ -30,6 +30,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtRadius
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSize
@@ -137,6 +138,7 @@ fun RtButton(
                 text = text,
                 style = if (isCompact) RtTextStyles.buttonSmall else RtTextStyles.button,
                 maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

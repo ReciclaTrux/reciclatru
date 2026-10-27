@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <application>
+    <!-- Solo debug: el backend de desarrollo corre en http://10.0.2.2:3000. -->
+    <application android:usesCleartextTraffic="true">
         <activity
             android:name=".ui.catalog.RtCatalogActivity"
             android:exported="true"

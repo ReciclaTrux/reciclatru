@@ -32,6 +32,15 @@ object RtSize {
     val badgeHeight = 24.dp
     val spinnerSmall = 20.dp
     val spinnerLarge = 32.dp
+    val dialogMaxWidth = 328.dp
+    val stateIcon = 72.dp
+    val stateIconGlyph = 36.dp
+    val stateMessageMaxWidth = 280.dp
+    val mapHeight = 420.dp
+    val mapPin = 48.dp
+    val navPillWidth = 64.dp
+    val navPillHeight = 32.dp
+    val roleRadio = 22.dp
 }
 
 /** Radios (`radius-sm`, `radius-md`, `radius-lg`, `radius-full`). */
@@ -51,4 +60,9 @@ object RtStroke {
     val fieldFocusOffset = 1.dp
     val spinnerSmall = 2.5.dp
     val spinnerLarge = 3.dp
+    val roleSelected = 2.dp
+    val roleRadio = 2.dp
+    val roleRadioSelected = 7.dp
+    val mapStreetMain = 14.dp
+    val mapStreetSecondary = 6.dp
 }

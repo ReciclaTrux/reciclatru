@@ -8,12 +8,14 @@ import 'rt_icon_button.dart';
 
 /// Campo de texto con etiqueta arriba y ayuda o error abajo.
 ///
-/// Variantes del Release 1: correo, contraseña (con botón para mostrar u
-/// ocultar), celular, peso con sufijo, texto largo con contador y solo lectura.
+/// Variantes del Release 1: correo, contraseña, celular, peso con sufijo,
+/// texto largo con contador y solo lectura.
 ///
-/// Es un [StatefulWidget] solo por estado de UI (controlador, foco y
-/// visibilidad de la contraseña); el valor de negocio lo posee quien recibe
-/// [onValueChange].
+/// Es un [StatefulWidget] solo por estado de UI (controlador y foco); su API
+/// son datos y callbacks. La acción del ícono final (por ejemplo, mostrar u
+/// ocultar la contraseña) la controla quien usa el componente, igual que en
+/// Android: [trailingIcon], [trailingIconDescription] y
+/// [onTrailingIconClick].
 class RtTextField extends StatefulWidget {
   const RtTextField({
     super.key,
@@ -28,8 +30,11 @@ class RtTextField extends StatefulWidget {
     this.maxLength,
     this.keyboardType,
     this.readOnly = false,
+    this.multiline = false,
     this.obscureText = false,
-    this.maxLines = 1,
+    this.trailingIcon,
+    this.trailingIconDescription,
+    this.onTrailingIconClick,
   });
 
   final String label;
@@ -50,11 +55,17 @@ class RtTextField extends StatefulWidget {
   final TextInputType? keyboardType;
   final bool readOnly;
 
-  /// Contraseña: oculta el valor y muestra el botón para revelarlo.
+  /// Variante de texto largo: área de al menos 96 px y el texto se ajusta.
+  final bool multiline;
+
+  /// Oculta el valor; equivale a `visualTransformation` en Android.
   final bool obscureText;
 
-  /// Mayor a 1 convierte el campo en área de texto.
-  final int maxLines;
+  /// Acción al final del campo; requiere [trailingIconDescription] y
+  /// [onTrailingIconClick].
+  final IconData? trailingIcon;
+  final String? trailingIconDescription;
+  final VoidCallback? onTrailingIconClick;
 
   @override
   State<RtTextField> createState() => _RtTextFieldState();
@@ -63,14 +74,12 @@ class RtTextField extends StatefulWidget {
 class _RtTextFieldState extends State<RtTextField> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
-  late bool _obscured;
 
   @override
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.value);
     _focusNode = FocusNode();
-    _obscured = widget.obscureText;
     _focusNode.addListener(_handleFocusChange);
   }
 
@@ -82,9 +91,6 @@ class _RtTextFieldState extends State<RtTextField> {
         text: widget.value,
         selection: TextSelection.collapsed(offset: widget.value.length),
       );
-    }
-    if (oldWidget.obscureText != widget.obscureText) {
-      _obscured = widget.obscureText;
     }
   }
 
@@ -106,7 +112,6 @@ class _RtTextFieldState extends State<RtTextField> {
     final colors = theme.colorScheme;
     final extra = theme.extension<RtExtraColors>()!;
     final hasError = widget.error != null && widget.error!.isNotEmpty;
-    final isMultiline = widget.maxLines > 1;
     final isFocused = _focusNode.hasFocus;
 
     final borderColor = hasError
@@ -124,20 +129,20 @@ class _RtTextFieldState extends State<RtTextField> {
       color: colors.onSurfaceVariant,
     );
 
-    final suffix = _buildSuffix(theme, colors);
+    final trailing = _buildTrailing(theme, colors);
 
     final field = TextField(
       controller: _controller,
       focusNode: _focusNode,
       onChanged: widget.onValueChange,
       readOnly: widget.readOnly,
-      obscureText: _obscured,
-      enableSuggestions: !_obscured,
-      autocorrect: !_obscured,
+      obscureText: widget.obscureText,
+      enableSuggestions: !widget.obscureText,
+      autocorrect: !widget.obscureText,
       keyboardType: widget.keyboardType,
-      maxLines: _obscured ? 1 : widget.maxLines,
-      minLines: !_obscured && isMultiline ? widget.maxLines : null,
-      textAlignVertical: isMultiline
+      maxLines: widget.multiline ? null : 1,
+      minLines: widget.multiline ? 2 : null,
+      textAlignVertical: widget.multiline
           ? TextAlignVertical.top
           : TextAlignVertical.center,
       style: textStyle,
@@ -155,13 +160,15 @@ class _RtTextFieldState extends State<RtTextField> {
 
     final input = Container(
       constraints: BoxConstraints(
-        minHeight: isMultiline ? RtSize.inputAreaMinHeight : RtSize.inputHeight,
+        minHeight: widget.multiline
+            ? RtSize.inputAreaMinHeight
+            : RtSize.inputHeight,
       ),
       padding: EdgeInsets.only(
         left: RtSpacing.s4,
         right: RtSpacing.s2,
-        top: isMultiline ? RtSpacing.s3 : 0,
-        bottom: isMultiline ? RtSpacing.s3 : 0,
+        top: widget.multiline ? RtSpacing.s3 : 0,
+        bottom: widget.multiline ? RtSpacing.s3 : 0,
       ),
       decoration: BoxDecoration(
         color: widget.readOnly
@@ -180,7 +187,7 @@ class _RtTextFieldState extends State<RtTextField> {
             : null,
       ),
       child: Row(
-        crossAxisAlignment: isMultiline
+        crossAxisAlignment: widget.multiline
             ? CrossAxisAlignment.start
             : CrossAxisAlignment.center,
         children: <Widget>[
@@ -195,9 +202,9 @@ class _RtTextFieldState extends State<RtTextField> {
           Expanded(
             child: Semantics(label: widget.label, child: field),
           ),
-          if (suffix != null) ...<Widget>[
+          if (trailing.isNotEmpty) ...<Widget>[
             const SizedBox(width: RtSpacing.s2),
-            suffix,
+            ...trailing,
           ],
         ],
       ),
@@ -229,38 +236,45 @@ class _RtTextFieldState extends State<RtTextField> {
     );
   }
 
-  Widget? _buildSuffix(ThemeData theme, ColorScheme colors) {
-    if (widget.readOnly) {
-      return Icon(
-        Icons.lock_rounded,
-        size: RtSize.iconMd,
-        color: colors.onSurfaceVariant,
-      );
-    }
-    if (widget.obscureText) {
-      return RtIconButton(
-        icon: _obscured
-            ? Icons.visibility_rounded
-            : Icons.visibility_off_rounded,
-        contentDescription: _obscured
-            ? 'Mostrar contraseña'
-            : 'Ocultar contraseña',
-        onClick: () => setState(() => _obscured = !_obscured),
-      );
-    }
+  List<Widget> _buildTrailing(ThemeData theme, ColorScheme colors) {
+    final trailing = <Widget>[];
+
     if (widget.suffix != null) {
-      return Padding(
-        padding: const EdgeInsets.only(right: RtSpacing.s2),
-        child: Text(
-          widget.suffix!,
-          style: theme.textTheme.bodyLarge!.copyWith(
-            fontWeight: FontWeight.w600,
-            color: colors.onSurfaceVariant,
+      trailing.add(
+        Padding(
+          padding: const EdgeInsets.only(right: RtSpacing.s2),
+          child: Text(
+            widget.suffix!,
+            style: theme.textTheme.bodyLarge!.copyWith(
+              fontWeight: FontWeight.w600,
+              color: colors.onSurfaceVariant,
+            ),
           ),
         ),
       );
     }
-    return null;
+    if (widget.readOnly) {
+      trailing.add(
+        Icon(
+          Icons.lock_rounded,
+          size: RtSize.iconMd,
+          color: colors.onSurfaceVariant,
+        ),
+      );
+    }
+    if (widget.trailingIcon != null &&
+        widget.trailingIconDescription != null &&
+        widget.onTrailingIconClick != null) {
+      trailing.add(
+        RtIconButton(
+          icon: widget.trailingIcon!,
+          contentDescription: widget.trailingIconDescription!,
+          onClick: widget.onTrailingIconClick!,
+        ),
+      );
+    }
+
+    return trailing;
   }
 
   Widget _buildHelp({

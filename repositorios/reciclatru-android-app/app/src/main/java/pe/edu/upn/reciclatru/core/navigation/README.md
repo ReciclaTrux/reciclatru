@@ -1,8 +1,15 @@
 # core/navigation
 
-Rutas tipadas, `NavHost` y guardas de navegación de la app. Define **dónde** se puede ir
-(login, pedidos, explorar, seguimiento) y qué se muestra al iniciar según haya sesión o no.
+Rutas y `NavHost` de la app. Define **dónde** se puede ir y qué se muestra al iniciar.
+
+| Archivo | Qué hace |
+| --- | --- |
+| `AppRoutes.kt` | Constantes de ruta (`Home`, `PickupLocation`). |
+| `AppNavHost.kt` | Registra cada pantalla de feature y su `composable`. |
 
 - Las pantallas no viven acá: cada una está en `feature/<dominio>/ui/`.
-- Las guardas solo redirigen por sesión o rol para mejorar la UX; el backend sigue autorizando.
-- Al agregar una pantalla, se registra su ruta y se enlaza el `composable` correspondiente.
+- Al agregar una pantalla, se agrega su ruta y se registra en `AppNavHost`.
+- El destino inicial es un marcador temporal (`Home`) hasta que exista el ingreso de
+  HU-01/HU-02.
+- Las guardas solo redirigen por sesión o rol para mejorar la UX; el backend sigue
+  autorizando.

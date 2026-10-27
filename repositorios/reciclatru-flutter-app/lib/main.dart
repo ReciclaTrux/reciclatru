@@ -1,9 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:maplibre_gl/maplibre_gl.dart';
 
 import 'core/design_system/theme/rt_colors.dart';
 import 'core/design_system/theme/rt_theme.dart';
 
 void main() {
+  // La vista de Android por defecto usa GLSurfaceView (Virtual Display), que
+  // queda por encima de los overlays de Flutter y se queda con los toques.
+  // TextureView deja que las sugerencias, el pin y la hoja reciban los taps.
+  MapLibreMap.useHybridComposition = true;
   runApp(const ReciclaTruApp());
 }
 

@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../theme/rt_colors.dart';
 import '../theme/rt_spacing.dart';
 
 /// Variante de [RtIconButton].
@@ -24,19 +23,18 @@ class RtIconButton extends StatelessWidget {
     super.key,
     required this.icon,
     required this.contentDescription,
-    this.onClick,
+    required this.onClick,
     this.variant = RtIconButtonVariant.standard,
   });
 
   final IconData icon;
   final String contentDescription;
-  final VoidCallback? onClick;
+  final VoidCallback onClick;
   final RtIconButtonVariant variant;
 
   @override
   Widget build(BuildContext context) {
     final colors = Theme.of(context).colorScheme;
-    final extra = Theme.of(context).extension<RtExtraColors>()!;
 
     final (background, foreground) = switch (variant) {
       RtIconButtonVariant.standard => (
@@ -58,10 +56,6 @@ class RtIconButton extends StatelessWidget {
       style: IconButton.styleFrom(
         backgroundColor: background,
         foregroundColor: foreground,
-        disabledBackgroundColor: variant == RtIconButtonVariant.tonal
-            ? extra.disabledBg
-            : Colors.transparent,
-        disabledForegroundColor: extra.disabledInk,
         minimumSize: const Size(RtSize.touchTarget, RtSize.touchTarget),
         fixedSize: const Size(RtSize.touchTarget, RtSize.touchTarget),
         padding: EdgeInsets.zero,

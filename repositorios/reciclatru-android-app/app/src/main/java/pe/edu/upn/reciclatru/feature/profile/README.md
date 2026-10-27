@@ -1,9 +1,16 @@
 # feature/profile
 
-**Dominio:** perfil del usuario — datos propios y de contacto (HU de perfil).
+**Dominio:** perfil del usuario — datos propios, de contacto y punto de recojo.
 
-Perfil del usuario: ver y editar nombre y datos de contacto, y consultar el rol. La API decide qué campos se muestran y cuáles se pueden editar.
+| HU | Estado |
+| --- | --- |
+| HU-03 (completar perfil) | pendiente |
+| HU-04 (punto de recojo) | implementada como ejemplo de corte vertical |
 
-- `ui/` — pantallas, ViewModel y navegación de la feature.
-- `domain/` — modelos, casos de uso y contrato de repositorio.
-- `data/` — API, DTOs, mappers e implementación del repositorio.
+HU-04 usa `RtMapPicker`, `RtSearchField`, `RtTextField`, `RtInlineAlert` y `RtActionBar`.
+El mapa es MapLibre con el estilo `positron` de OpenFreeMap y el geocoder es el de Android
+(con autocomplete y debounce de 300 ms); la ubicación se guarda en la API y requiere sesión.
+
+- `ui/` — pantallas, ViewModel y estado.
+- `domain/` — modelos, casos de uso y contratos de repositorio.
+- `data/` — API, DTOs, mappers, Geocoder e implementaciones.

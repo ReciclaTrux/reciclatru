@@ -37,8 +37,9 @@ No hay nivel de plantillas ni carpeta de pantallas: las pantallas viven en cada 
 4. **Qué usa una pantalla**: si hay molécula u organismo para eso, se usa; no se rearma con
    átomos. Los átomos van directos solo cuando ningún componente mayor cubre el caso.
 5. **Por cada componente**: leer su guía en el sistema, respetar el nombre `Rt…` y los
-   parámetros de "Qué recibe", y crear un ejemplo (Widgetbook) con los mismos estados que su vista
-   previa.
+   parámetros de "Qué recibe", y crear un ejemplo (Widgetbook) con los mismos estados que su
+   vista previa. Además, todo componente nuevo agrega un caso **`Interactivo`** con knobs
+   para editar sus parámetros desde el panel del catálogo.
 6. **Stateless**: reciben datos y callbacks; nunca providers, repositorios ni modelos de dominio.
 7. Los átomos envuelven Material 3, no lo reemplazan.
 8. Si cambia un valor del sistema, se actualiza en las dos apps en el mismo PR.
@@ -94,23 +95,23 @@ Referencia visual: [prototipo de pantallas](https://claude.ai/artifact/ECANZst8M
 | `RtAcceptanceChip` | átomo | pendiente | `lib/core/design_system/atoms/rt_acceptance_chip.dart` |
 | `RtPhotoThumb` | átomo | pendiente | `lib/core/design_system/atoms/rt_photo_thumb.dart` |
 | `RtStatusChip` | átomo | pendiente | `lib/core/design_system/atoms/rt_status_chip.dart` |
-| `RtRoleSelector` | molécula | pendiente | `lib/core/design_system/molecules/rt_role_selector.dart` |
-| `RtInlineAlert` | molécula | pendiente | `lib/core/design_system/molecules/rt_inline_alert.dart` |
-| `RtSearchField` | molécula | pendiente | `lib/core/design_system/molecules/rt_search_field.dart` |
-| `RtContactRow` | molécula | pendiente | `lib/core/design_system/molecules/rt_contact_row.dart` |
-| `RtConfirmDialog` | molécula | pendiente | `lib/core/design_system/molecules/rt_confirm_dialog.dart` |
-| `RtSnackbar` | molécula | pendiente | `lib/core/design_system/molecules/rt_snackbar.dart` |
-| `RtErrorState` | molécula | pendiente | `lib/core/design_system/molecules/rt_error_state.dart` |
+| `RtRoleSelector` | molécula | listo | `lib/core/design_system/molecules/rt_role_selector.dart` |
+| `RtInlineAlert` | molécula | listo | `lib/core/design_system/molecules/rt_inline_alert.dart` |
+| `RtSearchField` | molécula | listo | `lib/core/design_system/molecules/rt_search_field.dart` |
+| `RtContactRow` | molécula | listo | `lib/core/design_system/molecules/rt_contact_row.dart` |
+| `RtConfirmDialog` | molécula | listo | `lib/core/design_system/molecules/rt_confirm_dialog.dart` |
+| `RtSnackbar` | molécula | listo | `lib/core/design_system/molecules/rt_snackbar.dart` |
+| `RtErrorState` | molécula | listo | `lib/core/design_system/molecules/rt_error_state.dart` |
 | `RtItemRow` | molécula | pendiente | `lib/core/design_system/molecules/rt_item_row.dart` |
 | `RtPhotoPicker` | molécula | pendiente | `lib/core/design_system/molecules/rt_photo_picker.dart` |
 | `RtTabs` | molécula | pendiente | `lib/core/design_system/molecules/rt_tabs.dart` |
 | `RtEmptyState` | molécula | pendiente | `lib/core/design_system/molecules/rt_empty_state.dart` |
 | `RtMetaRow` | molécula | pendiente | `lib/core/design_system/molecules/rt_meta_row.dart` |
 | `RtAddressBlock` | molécula | pendiente | `lib/core/design_system/molecules/rt_address_block.dart` |
-| `RtTopAppBar` | organismo | pendiente | `lib/core/design_system/organisms/rt_top_app_bar.dart` |
-| `RtBottomNav` | organismo | pendiente | `lib/core/design_system/organisms/rt_bottom_nav.dart` |
-| `RtMapPicker` | organismo | pendiente | `lib/core/design_system/organisms/rt_map_picker.dart` |
-| `RtActionBar` | organismo | pendiente | `lib/core/design_system/organisms/rt_action_bar.dart` |
+| `RtTopAppBar` | organismo | listo | `lib/core/design_system/organisms/rt_top_app_bar.dart` |
+| `RtBottomNav` | organismo | listo | `lib/core/design_system/organisms/rt_bottom_nav.dart` |
+| `RtMapPicker` | organismo | listo | `lib/core/design_system/organisms/rt_map_picker.dart` |
+| `RtActionBar` | organismo | listo | `lib/core/design_system/organisms/rt_action_bar.dart` |
 | `RtItemListEditor` | organismo | pendiente | `lib/core/design_system/organisms/rt_item_list_editor.dart` |
 | `RtOrderCard` | organismo | pendiente | `lib/core/design_system/organisms/rt_order_card.dart` |
 | `RtAvailableOrderCard` | organismo | pendiente | `lib/core/design_system/organisms/rt_available_order_card.dart` |

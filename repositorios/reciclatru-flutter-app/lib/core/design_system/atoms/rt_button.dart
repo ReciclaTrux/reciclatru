@@ -38,7 +38,7 @@ class RtButton extends StatelessWidget {
   const RtButton({
     super.key,
     required this.text,
-    this.onClick,
+    required this.onClick,
     this.variant = RtButtonVariant.primary,
     this.icon,
     this.loading = false,
@@ -48,7 +48,7 @@ class RtButton extends StatelessWidget {
   });
 
   final String text;
-  final VoidCallback? onClick;
+  final VoidCallback onClick;
   final RtButtonVariant variant;
   final IconData? icon;
   final bool loading;
@@ -62,7 +62,7 @@ class RtButton extends StatelessWidget {
     final extra = Theme.of(context).extension<RtExtraColors>()!;
     final isCompact = size == RtButtonSize.compact;
     final height = isCompact ? RtSize.buttonHeightSm : RtSize.buttonHeight;
-    final isActive = enabled && !loading && onClick != null;
+    final isActive = enabled && !loading;
 
     final (background, foreground) = switch (variant) {
       RtButtonVariant.primary => (colors.primary, colors.onPrimary),

@@ -5,6 +5,8 @@ por feature e inyección de dependencias con Hilt. Paquete base:
 `pe.edu.upn.reciclatru`.
 
 Lee primero `../../AGENTS.md` y la constitución en `../../.specify/memory/constitution.md`.
+Antes de empezar una HU, sigue `GUIA-HU.md`: capas, Hilt, uso obligatorio del sistema de
+diseño, tests y checklist del PR.
 
 ## Arquitectura
 

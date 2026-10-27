@@ -101,30 +101,42 @@ segunda tabla.
 | átomo | `RtPhotoThumb` | pendiente | `ui/designsystem/atoms/RtPhotoThumb.kt` |
 | átomo | `RtStatusChip` | pendiente | `ui/designsystem/atoms/RtStatusChip.kt` |
 | molécula | `RtAddressBlock` | pendiente | `ui/designsystem/molecules/RtAddressBlock.kt` |
-| molécula | `RtConfirmDialog` | pendiente | `ui/designsystem/molecules/RtConfirmDialog.kt` |
-| molécula | `RtContactRow` | pendiente | `ui/designsystem/molecules/RtContactRow.kt` |
+| molécula | `RtConfirmDialog` | listo | `ui/designsystem/molecules/RtConfirmDialog.kt` |
+| molécula | `RtContactRow` | listo | `ui/designsystem/molecules/RtContactRow.kt` |
 | molécula | `RtEmptyState` | pendiente | `ui/designsystem/molecules/RtEmptyState.kt` |
-| molécula | `RtErrorState` | pendiente | `ui/designsystem/molecules/RtErrorState.kt` |
-| molécula | `RtInlineAlert` | pendiente | `ui/designsystem/molecules/RtInlineAlert.kt` |
+| molécula | `RtErrorState` | listo | `ui/designsystem/molecules/RtErrorState.kt` |
+| molécula | `RtInlineAlert` | listo | `ui/designsystem/molecules/RtInlineAlert.kt` |
 | molécula | `RtItemRow` | pendiente | `ui/designsystem/molecules/RtItemRow.kt` |
 | molécula | `RtMetaRow` | pendiente | `ui/designsystem/molecules/RtMetaRow.kt` |
 | molécula | `RtPhotoPicker` | pendiente | `ui/designsystem/molecules/RtPhotoPicker.kt` |
-| molécula | `RtRoleSelector` | pendiente | `ui/designsystem/molecules/RtRoleSelector.kt` |
-| molécula | `RtSearchField` | pendiente | `ui/designsystem/molecules/RtSearchField.kt` |
-| molécula | `RtSnackbar` | pendiente | `ui/designsystem/molecules/RtSnackbar.kt` |
+| molécula | `RtRoleSelector` | listo | `ui/designsystem/molecules/RtRoleSelector.kt` |
+| molécula | `RtSearchField` | listo | `ui/designsystem/molecules/RtSearchField.kt` |
+| molécula | `RtSnackbar` | listo | `ui/designsystem/molecules/RtSnackbar.kt` |
 | molécula | `RtTabs` | pendiente | `ui/designsystem/molecules/RtTabs.kt` |
 | organismo | `RtAcceptanceCard` | pendiente | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
 | organismo | `RtAcceptedOrderCard` | pendiente | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
-| organismo | `RtActionBar` | pendiente | `ui/designsystem/organisms/RtActionBar.kt` |
+| organismo | `RtActionBar` | listo | `ui/designsystem/organisms/RtActionBar.kt` |
 | organismo | `RtAvailableOrderCard` | pendiente | `ui/designsystem/organisms/RtAvailableOrderCard.kt` |
-| organismo | `RtBottomNav` | pendiente | `ui/designsystem/organisms/RtBottomNav.kt` |
+| organismo | `RtBottomNav` | listo | `ui/designsystem/organisms/RtBottomNav.kt` |
 | organismo | `RtItemListEditor` | pendiente | `ui/designsystem/organisms/RtItemListEditor.kt` |
 | organismo | `RtLocationPrompt` | pendiente | `ui/designsystem/organisms/RtLocationPrompt.kt` |
-| organismo | `RtMapPicker` | pendiente | `ui/designsystem/organisms/RtMapPicker.kt` |
+| organismo | `RtMapPicker` | listo | `ui/designsystem/organisms/RtMapPicker.kt` |
 | organismo | `RtOrderCard` | pendiente | `ui/designsystem/organisms/RtOrderCard.kt` |
 | organismo | `RtPhotoGallery` | pendiente | `ui/designsystem/organisms/RtPhotoGallery.kt` |
-| organismo | `RtTopAppBar` | pendiente | `ui/designsystem/organisms/RtTopAppBar.kt` |
+| organismo | `RtTopAppBar` | listo | `ui/designsystem/organisms/RtTopAppBar.kt` |
 
 El catálogo de lo implementado se abre solo en builds de debug: actividad
 `ui/catalog/RtCatalogActivity` (`app/src/debug/`), con el mismo contenido que las vistas
 previas de cada componente.
+
+## Notas de implementación acordadas
+
+- `RtMapPicker` agrega un parámetro opcional `center: RtLatLng?` (el mismo en Flutter):
+  cuando cambia, la cámara se anima hasta ese punto y el pin sigue fijo. Lo usa la pantalla
+  de HU-04 al resolver una búsqueda; el Geocoder vive en la feature, nunca en el organismo.
+- `RtSearchField` recibe `suggestions`, `suggestionsLoading` y `onSuggestionSelected`, y
+  `RtMapPicker` los reenvía junto con `onSearchQueryChanged`, `searchSuggestions` y
+  `searchLoading`. El debounce de 300 ms, la consulta al Geocoder y el estado `searching`
+  viven en la feature; el componente solo dibuja hasta cuatro sugerencias.
+- Antes de maquetar una HU, sigue la guía `GUIA-HU.md` de la raíz de la app: ahí están el
+  flujo de capas, Hilt, el uso obligatorio de estos componentes y el checklist del PR.

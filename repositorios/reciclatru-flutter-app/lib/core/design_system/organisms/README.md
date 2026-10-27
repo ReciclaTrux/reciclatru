@@ -7,15 +7,15 @@ estén en esta lista.
 
 - `RtAcceptanceCard` → `rt_acceptance_card.dart` — sprint posterior
 - `RtAcceptedOrderCard` → `rt_accepted_order_card.dart` — sprint posterior
-- `RtActionBar` → `rt_action_bar.dart` — sprint 1
+- `RtActionBar` → `rt_action_bar.dart` — listo (lote 2)
 - `RtAvailableOrderCard` → `rt_available_order_card.dart` — sprint posterior
-- `RtBottomNav` → `rt_bottom_nav.dart` — sprint 1
+- `RtBottomNav` → `rt_bottom_nav.dart` — listo (lote 2)
 - `RtItemListEditor` → `rt_item_list_editor.dart` — sprint posterior
 - `RtLocationPrompt` → `rt_location_prompt.dart` — sprint posterior
-- `RtMapPicker` → `rt_map_picker.dart` — sprint 1
+- `RtMapPicker` → `rt_map_picker.dart` — listo (lote 2)
 - `RtOrderCard` → `rt_order_card.dart` — sprint posterior
 - `RtPhotoGallery` → `rt_photo_gallery.dart` — sprint posterior
-- `RtTopAppBar` → `rt_top_app_bar.dart` — sprint 1
+- `RtTopAppBar` → `rt_top_app_bar.dart` — listo (lote 2)
 
 Se implementan por sprint, antes de que empiece, según las HU que lo usan (inventario por
 HU en el sistema). Orden: tema → átomos → moléculas → organismos.

@@ -22,4 +22,14 @@ abstract final class RtStroke {
 
   /// Trazo de [RtSpinner] grande.
   static const double spinnerLarge = 3;
+
+  /// Divisor de 1 px (`--outline`).
+  static const double divider = 1;
+
+  /// Borde de la opción elegida en `RtRoleSelector`.
+  static const double roleSelected = 2;
+
+  /// Anillo del radio de `RtRoleSelector` sin elegir y su relleno al elegir.
+  static const double roleRadio = 2;
+  static const double roleRadioSelected = 7;
 }
