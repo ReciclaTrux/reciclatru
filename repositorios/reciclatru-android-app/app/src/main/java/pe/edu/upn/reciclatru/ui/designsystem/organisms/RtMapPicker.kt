@@ -51,6 +51,7 @@ import org.maplibre.android.geometry.LatLng
 import org.maplibre.android.maps.MapLibreMap
 import org.maplibre.android.maps.MapView
 import org.maplibre.android.maps.Style
+import org.maplibre.android.maps.UiSettings
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSearchField
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtElevation
@@ -125,12 +126,16 @@ fun RtMapPicker(
         bottomEnd = RtRadius.lg,
     )
     var query by rememberSaveable { mutableStateOf("") }
-    val mapHandle = remember { RtMapHandle() }
+    // En modo vista previa (Android Studio Preview), evitamos instanciar RtMapHandle
+    // o cargar clases de MapLibre (MapView) para no causar NoClassDefFoundError.
+    val isPreview = LocalInspectionMode.current
+    val mapHandle = if (isPreview) null else remember { RtMapHandle() }
     val focusManager = LocalFocusManager.current
 
     // `mapHandle.map` entra en las claves para animar cuando el mapa ya cargó.
-    LaunchedEffect(center, mapHandle.map) {
-        val map = mapHandle.map ?: return@LaunchedEffect
+    LaunchedEffect(center, mapHandle?.map) {
+        if (isPreview) return@LaunchedEffect
+        val map = mapHandle?.map ?: return@LaunchedEffect
         val target = center ?: return@LaunchedEffect
         map.animateCamera(
             CameraUpdateFactory.newLatLng(LatLng(target.latitude, target.longitude)),
@@ -153,24 +158,26 @@ fun RtMapPicker(
                     .background(colorScheme.surfaceVariant)
                     .border(RtStroke.control, colorScheme.outline, shape),
             ) {
-                if (LocalInspectionMode.current) {
+                if (isPreview) {
                     MapPlaceholder(
                         streetColor = colorScheme.surface,
                         blockColor = colorScheme.secondaryContainer,
                     )
                 } else {
-                    RtMapView(
-                        initialCenter = initialCenter,
-                        handle = mapHandle,
-                        onMapTap = {
-                            focusManager.clearFocus()
-                            if (query.isNotEmpty()) {
-                                query = ""
-                                onSearchQueryChanged?.invoke("")
-                            }
-                        },
-                        modifier = Modifier.fillMaxSize(),
-                    )
+                    mapHandle?.let { handle ->
+                        RtMapView(
+                            initialCenter = initialCenter,
+                            handle = handle,
+                            onMapTap = {
+                                focusManager.clearFocus()
+                                if (query.isNotEmpty()) {
+                                    query = ""
+                                    onSearchQueryChanged?.invoke("")
+                                }
+                            },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
                 }
                 Icon(
                     imageVector = Icons.Rounded.LocationOn,
@@ -206,8 +213,8 @@ fun RtMapPicker(
                 RtButton(
                     text = "Confirmar ubicación",
                     onClick = {
-                        val center = mapHandle.centerOr(initialCenter)
-                        onConfirm(center.latitude, center.longitude)
+                        val selectedCenter = mapHandle?.centerOr(initialCenter) ?: initialCenter
+                        onConfirm(selectedCenter.latitude, selectedCenter.longitude)
                     },
                     fullWidth = true,
                 )
@@ -266,9 +273,11 @@ private fun RtMapView(
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnMapTap by rememberUpdatedState(onMapTap)
-    val mapView = remember(context) {
+    val mapView: MapView = remember(context) {
         MapLibre.getInstance(context)
-        MapView(context).apply { onCreate(null) }
+        val view = MapView(context)
+        view.onCreate(null)
+        view
     }
 
     DisposableEffect(lifecycleOwner, mapView) {
@@ -296,31 +305,30 @@ private fun RtMapView(
         }
     }
 
-    AndroidView(
+    AndroidView<MapView>(
         modifier = modifier,
         factory = {
-            mapView.apply {
-                getMapAsync { map ->
-                    map.uiSettings.apply {
-                        isRotateGesturesEnabled = false
-                        isTiltGesturesEnabled = false
-                        isCompassEnabled = false
-                        // Los créditos están en la hoja inferior, siempre visibles.
-                        isAttributionEnabled = false
-                    }
-                    map.setStyle(Style.Builder().fromUri(MapStyleUrl))
-                    map.cameraPosition = CameraPosition.Builder()
-                        .target(LatLng(initialCenter.latitude, initialCenter.longitude))
-                        .zoom(InitialZoom)
-                        .build()
-                    // Tocar el mapa cierra el buscador y sus sugerencias, como en Flutter.
-                    map.addOnMapClickListener {
-                        currentOnMapTap()
-                        false
-                    }
-                    handle.map = map
+            mapView.getMapAsync { map: MapLibreMap ->
+                val settings: UiSettings = map.uiSettings
+                settings.isRotateGesturesEnabled = false
+                settings.isTiltGesturesEnabled = false
+                settings.isCompassEnabled = false
+                // Los créditos están en la hoja inferior, siempre visibles.
+                settings.isAttributionEnabled = false
+
+                map.setStyle(Style.Builder().fromUri(MapStyleUrl))
+                map.cameraPosition = CameraPosition.Builder()
+                    .target(LatLng(initialCenter.latitude, initialCenter.longitude))
+                    .zoom(InitialZoom)
+                    .build()
+                // Tocar el mapa cierra el buscador y sus sugerencias, como en Flutter.
+                map.addOnMapClickListener {
+                    currentOnMapTap()
+                    false
                 }
+                handle.map = map
             }
+            mapView
         },
     )
 }
