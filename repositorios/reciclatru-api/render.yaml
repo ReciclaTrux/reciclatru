@@ -1,0 +1,38 @@
+# Render Blueprint. Crea el servicio web de la API; la base y el bucket viven en Neon.
+services:
+  - type: web
+    name: reciclatru-api
+    runtime: node
+    region: ohio            # cerca de Neon us-east-2
+    plan: free
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:prod
+    healthCheckPath: /api/v1/health
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "24"
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_SSL
+        value: "true"
+      - key: JWT_EXPIRES_IN_DAYS
+        value: "30"
+      - key: S3_REGION
+        value: us-east-2
+      - key: S3_BUCKET
+        value: photos
+      - key: S3_FORCE_PATH_STYLE
+        value: "false"
+      - key: JWT_SECRET
+        generateValue: true
+      - key: DATABASE_URL        # URL con pooler de Neon
+        sync: false
+      - key: PHONE_ENCRYPTION_KEY
+        sync: false
+      - key: S3_ENDPOINT
+        sync: false
+      - key: S3_ACCESS_KEY_ID
+        sync: false
+      - key: S3_SECRET_ACCESS_KEY
+        sync: false
