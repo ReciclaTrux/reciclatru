@@ -35,8 +35,8 @@ Hilt). El flujo de dependencias es `ui → domain ← data`.
 
 Lee **[`GUIA-HU.md`](GUIA-HU.md)**. Explica cómo se arma una HU completa, cómo usar Hilt,
 cómo consumir la API y —lo más importante— cómo usar el sistema de diseño sin inventar
-componentes. También tienes las reglas del repo en [`AGENTS.md`](AGENTS.md) y la
-constitución en `../../.specify/memory/constitution.md`.
+componentes. También tienes las reglas del repo en [`AGENTS.md`](AGENTS.md) y el flujo
+del monorepo en `../../AGENTS.md`.
 
 El sistema de diseño es la única fuente de estilos y componentes:
 https://claude.ai/artifact/JZrHXR93AT3KsyobjzR6F2

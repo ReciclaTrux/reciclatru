@@ -7,9 +7,8 @@ sistema de diseño y los nombres ya están decididos.
 Antes de empezar, lee también:
 
 1. [`AGENTS.md`](AGENTS.md) — reglas del cliente Android.
-2. `../../.specify/memory/constitution.md` — norma de mayor jerarquía.
-3. `../../AGENTS.md` — flujo de ramas, commits y PR del monorepo.
-4. La spec de tu HU y su tablero del prototipo:
+2. `../../AGENTS.md` — flujo de ramas, commits y PR del monorepo.
+3. Tu HU en Jira y su tablero del prototipo:
    https://claude.ai/artifact/ECANZst8MApzL3Yn6x1fVh
 
 ## 1. Qué se entrega en una HU

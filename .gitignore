@@ -15,8 +15,8 @@ repositorios/reciclatru-api/uploads/*
 .DS_Store
 Thumbs.db
 
-# Agentes de IA: subir solo comandos compartidos
-.opencode/*
-!.opencode/command/
-!.opencode/commands/
-.claude/settings.local.json
+# Agentes de IA y Spec Kit: no se suben (AGENTS.md sí)
+.claude/
+.opencode/
+CLAUDE.md
+.specify/

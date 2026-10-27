@@ -4,7 +4,7 @@ Cliente principal del proyecto. Kotlin + Jetpack Compose + Material 3, arquitect
 por feature e inyección de dependencias con Hilt. Paquete base:
 `pe.edu.upn.reciclatru`.
 
-Lee primero `../../AGENTS.md` y la constitución en `../../.specify/memory/constitution.md`.
+Lee primero `../../AGENTS.md`.
 Antes de empezar una HU, sigue `GUIA-HU.md`: capas, Hilt, uso obligatorio del sistema de
 diseño, tests y checklist del PR.
 

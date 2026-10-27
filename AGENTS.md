@@ -21,13 +21,13 @@ Es un monorepo con dos clientes que usan el mismo backend. Todo vive bajo `repos
 Ambos clientes consumen **la misma API**. Cada historia de usuario (HU) es un **corte
 vertical**: pantalla + consumo de la API, demostrable de punta a punta.
 
-## Regla superior
+## Reglas por proyecto
 
-`.specify/memory/constitution.md` es la norma de mayor jerarquía del repositorio.
-Este archivo y cualquier otro documento son guías operativas: si hay conflicto, gana la
-constitución. Antes de implementar, leerla.
+Cada cliente tiene su propio `AGENTS.md` con las reglas de su stack: revisa el de
+`repositorios/reciclatru-android-app/` o el de `repositorios/reciclatru-flutter-app/`
+antes de tocar código en esa carpeta.
 
-Principios que más afectan al código (resumen; la constitución manda):
+Principios generales que aplican a ambos clientes:
 
 1. **HU como corte vertical**: cada HU se entrega completa (pantalla + consumo de la API),
    en su rama y con un único PR.
@@ -51,9 +51,7 @@ Principios que más afectan al código (resumen; la constitución manda):
 
 ```text
 .
-├── AGENTS.md / CLAUDE.md        # instrucciones para agentes (raíz)
-├── .specify/                    # Spec Kit: constitución, plantillas, specs (NO editar a mano)
-├── .claude/ y .opencode/        # comandos de agentes (NO editar a mano)
+├── AGENTS.md                    # instrucciones para agentes (raíz)
 └── repositorios/
     ├── reciclatru-android-app/  # app Android (Kotlin, Compose, MVVM + Hilt)
     ├── reciclatru-flutter-app/  # app Flutter (Riverpod + go_router)
@@ -63,8 +61,7 @@ Principios que más afectan al código (resumen; la constitución manda):
     └── reciclatru-ux/           # diseño UX (pendiente)
 ```
 
-Android y Flutter tienen su propio `AGENTS.md` con las reglas de su stack y un `CLAUDE.md`
-que solo contiene `@AGENTS.md`.
+Android y Flutter tienen su propio `AGENTS.md` con las reglas de su stack.
 
 ## Flujo de trabajo
 
@@ -83,17 +80,15 @@ que solo contiene `@AGENTS.md`.
 - **Antes de modificar archivos dentro de `repositorios/reciclatru-android-app/`,
   `repositorios/reciclatru-flutter-app/`, lee el `AGENTS.md` de esa carpeta y sigue sus
   reglas.**
-- No modificar `.specify/` ni `.claude/` salvo que la tarea sea explícitamente sobre
-  esos artefactos.
 - No agregar dependencias, plugins ni servicios que impliquen costo, tarjeta o API key.
 - No inventar reglas de negocio: si un criterio de aceptación no está claro, preguntar o
-  revisar la spec de la HU antes de implementar.
+  revisar la HU en Jira antes de implementar.
 - Respetar la estructura y los nombres ya existentes; antes de crear un componente,
   verificar si ya existe uno equivalente.
 - Nunca incluir secretos, credenciales ni archivos `.env` en el repositorio.
 - No borrar trabajo existente sin entenderlo y sin confirmación.
 - Si una decisión afecta la arquitectura, actualizar la documentación de
-  `repositorios/reciclatru-arquitectura/` (C4 en Mermaid) y el `CLAUDE.md`/`AGENTS.md` que corresponda.
+  `repositorios/reciclatru-arquitectura/` (C4 en Mermaid) y el `AGENTS.md` que corresponda.
 
 ## Documentación
 

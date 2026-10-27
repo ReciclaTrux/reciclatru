@@ -2,8 +2,7 @@
 
 Cliente iOS/multiplataforma. Flutter + Material 3, **Riverpod** para estado e inyección y
 **go_router** para navegación. Se trabaja después de Android, pero comparte la misma API
-y los mismos nombres de dominio. Lee primero `../../AGENTS.md` y la constitución en
-`../../.specify/memory/constitution.md`.
+y los mismos nombres de dominio. Lee primero `../../AGENTS.md`.
 
 ## Arquitectura
 
