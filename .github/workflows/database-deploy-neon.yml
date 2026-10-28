@@ -1,0 +1,46 @@
+name: Database - Deploy to Neon
+
+# Aplica en Neon las migraciones pendientes de repositorios/reciclatru-database/migrations.
+# No usa Docker: instala el CLI de Flyway en el runner.
+# Secrets necesarios (environment "production" o del repositorio):
+#   NEON_FLYWAY_URL      jdbc:postgresql://<host-directo>/<base>?sslmode=require   (sin "-pooler")
+#   NEON_FLYWAY_USER
+#   NEON_FLYWAY_PASSWORD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "repositorios/reciclatru-database/migrations/**"
+      - "repositorios/reciclatru-database/flyway.conf"
+  workflow_dispatch:
+
+concurrency:
+  group: neon-deploy
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: repositorios/reciclatru-database
+    env:
+      FLYWAY_URL: ${{ secrets.NEON_FLYWAY_URL }}
+      FLYWAY_USER: ${{ secrets.NEON_FLYWAY_USER }}
+      FLYWAY_PASSWORD: ${{ secrets.NEON_FLYWAY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Flyway CLI
+        uses: red-gate/setup-flyway@v1
+
+      - name: Flyway info (antes)
+        run: flyway -configFiles=flyway.conf info
+
+      - name: Flyway migrate
+        run: flyway -configFiles=flyway.conf migrate
+
+      - name: Flyway validate (después)
+        run: flyway -configFiles=flyway.conf validate
