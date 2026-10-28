@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { OrderStatus } from '../../../common/domain/enums.js';
 import { ConflictAppException, UnprocessableAppException } from '../../../common/errors/app.exception.js';
 import { ErrorCode } from '../../../common/errors/error-code.js';
@@ -15,6 +15,8 @@ import { OrderQueryService } from './order-query.service.js';
 /** Write side of the neighbor's orders: publish, edit, cancel, choose a recycler and mark as collected. */
 @Injectable()
 export class OrderCommandService {
+  private readonly logger = new Logger(OrderCommandService.name);
+
   constructor(
     private readonly db: Database,
     private readonly access: OrderAccessService,
@@ -40,6 +42,7 @@ export class OrderCommandService {
       await this.orders.addHistory(id, null, OrderStatus.PENDING, user.id);
       return id;
     });
+    this.logger.log({ event: 'order.created', orderId, itemCount: items.length });
     return this.present(user, orderId);
   }
 
@@ -57,18 +60,22 @@ export class OrderCommandService {
       }
       await this.orders.replaceItems(orderId, items);
     });
+    this.logger.log({ event: 'order.updated', orderId, itemCount: items.length });
     return this.present(user, orderId);
   }
 
   /** HU-08 (RN16, RN17): logical cancellation from PENDING or CONFIRMED. */
   async cancel(user: AuthenticatedUser, orderId: string): Promise<ServicingOrderRecord> {
+    let previousStatus: OrderStatus | undefined;
     await this.db.transaction(async () => {
       const order = await this.access.loadOwned(user, orderId, true);
       if (!OrderRules.isCancellable(order.status))
         throw new ConflictAppException(ErrorCode.ORDER_NOT_CANCELLABLE);
+      previousStatus = order.status;
       await this.orders.transition(orderId, [order.status], OrderStatus.CANCELLED, 'cancelled_at');
       await this.orders.addHistory(orderId, order.status, OrderStatus.CANCELLED, user.id);
     });
+    this.logger.log({ event: 'order.cancelled', orderId, previousStatus });
     return this.present(user, orderId);
   }
 
@@ -80,6 +87,7 @@ export class OrderCommandService {
   ): Promise<ServicingOrderRecord> {
     await this.access.loadOwned(user, orderId);
     await this.acceptances.choose(orderId, acceptanceId, user.id);
+    this.logger.log({ event: 'order.confirmed', orderId, acceptanceId });
     return this.present(user, orderId);
   }
 
@@ -92,6 +100,7 @@ export class OrderCommandService {
       await this.orders.transition(orderId, [OrderStatus.CONFIRMED], OrderStatus.COLLECTED, 'collected_at');
       await this.orders.addHistory(orderId, OrderStatus.CONFIRMED, OrderStatus.COLLECTED, user.id);
     });
+    this.logger.log({ event: 'order.collected', orderId });
     return this.present(user, orderId);
   }
 
