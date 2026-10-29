@@ -1,8 +1,4 @@
-<<<<<<< HEAD
 import { Injectable, Logger } from '@nestjs/common';
-=======
-import { Injectable } from '@nestjs/common';
->>>>>>> origin/main
 import { JwtService } from '@nestjs/jwt';
 import { UnauthorizedAppException } from '../../common/errors/app.exception.js';
 import type { JwtPayload } from '../../common/security/jwt-payload.js';
