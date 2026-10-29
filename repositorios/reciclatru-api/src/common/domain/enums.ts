@@ -1,0 +1,39 @@
+export enum PartyRole {
+  NEIGHBOR = 'NEIGHBOR',
+  RECYCLER = 'RECYCLER',
+}
+
+export enum OrderStatus {
+  PENDING = 'PENDING',
+  CONFIRMED = 'CONFIRMED',
+  COLLECTED = 'COLLECTED',
+  CANCELLED = 'CANCELLED',
+}
+
+export enum AcceptanceStatus {
+  ACCEPTED = 'ACCEPTED',
+  CHOSEN = 'CHOSEN',
+  DISCARDED = 'DISCARDED',
+}
+
+export enum AcceptanceLabel {
+  AWAITING_CONFIRMATION = 'AWAITING_CONFIRMATION',
+  CHOSEN = 'CHOSEN',
+  NOT_CHOSEN = 'NOT_CHOSEN',
+  CANCELLED_BY_NEIGHBOR = 'CANCELLED_BY_NEIGHBOR',
+  COLLECTED = 'COLLECTED',
+}
+
+export enum OrderAction {
+  EDIT = 'EDIT',
+  CANCEL = 'CANCEL',
+  CHOOSE_RECYCLER = 'CHOOSE_RECYCLER',
+  MARK_COLLECTED = 'MARK_COLLECTED',
+  ACCEPT = 'ACCEPT',
+  GO_PICKUP = 'GO_PICKUP',
+}
+
+export enum ListTab {
+  ACTIVE = 'ACTIVE',
+  HISTORY = 'HISTORY',
+}

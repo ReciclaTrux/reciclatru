@@ -1,0 +1,2502 @@
+openapi: 3.0.3
+info:
+  title: ReciclaTru API
+  version: 1.0.0
+  description: |
+    API de ReciclaTru (Release 1), alineada al Informe de Proyecto Final (UPN 2026-2) y a la nomenclatura BIAN.
+    Conecta vecinos con material reciclable y recicladores en Huanchaco / Trujillo.
+
+    **Decisiones del Release 1 (según el informe)**
+    - Un solo rol por cuenta: `NEIGHBOR` (vecino) o `RECYCLER` (reciclador). El rol y el correo no se pueden cambiar (RN02, RN03).
+    - Autenticación propia: contraseña con bcrypt y JWT de 30 días (`Authorization: Bearer <token>`). Cerrar sesión borra el token en la app (HU-02).
+    - Pedido con 1 a 10 ítems (descripción y peso en kg) y hasta 3 fotos opcionales (RN06, RN07).
+    - Varios recicladores pueden aceptar un pedido `PENDING`; el vecino confirma a uno solo (RN09, RN12).
+    - El vecino marca el pedido como `COLLECTED` (RN15). Los pedidos no se borran, solo se cancelan (RN16, RN17).
+    - Ubicación del vecino marcada en mapa (sin GPS); se copia a cada pedido al publicarse (RN18).
+    - Ubicación del reciclador: GPS aproximado enviado como parámetro, **no se guarda** (RN19).
+    - Privacidad: la dirección, la referencia y las coordenadas exactas solo las ve el reciclador elegido con el pedido `CONFIRMED` (RN13).
+    - Sin notificaciones push, chat, pagos ni precios (RN14). La app consulta con pull-to-refresh.
+    - Errores en `application/problem+json` (RFC 7807). Un cambio de estado concurrente responde `409 Conflict`.
+    - Fuera del Release 1 (Release 2): recuperar contraseña, verificar teléfono, catálogo de materiales, mapa y filtros del reciclador, avisos, vencimiento automático, tope de aceptaciones, cancelación automática, reabrir pedido y retirar aceptación.
+
+    **Convención BIAN usada**
+    - Ruta: `/{service-domain}/{cr-reference-id}/{behavior-qualifier}/{action-term}` en kebab-case; el *action term* va sustantivado (`initiation`, `retrieval`, `update`, `execution`, `termination`).
+    - Mapeo HTTP: Initiate → `POST`; Retrieve → `GET`; Update, Execute y Terminate → `PUT`.
+    - `cr-reference-id` es la referencia del Control Record (usuario, pedido). Las respuestas incluyen `crReferenceId` y `...InstanceRecord`.
+    - Los Service Domains son la correspondencia más cercana del landscape BIAN (bancario); no existe un dominio oficial de reciclaje. Cada operación declara su equivalencia en `x-bian`.
+    - `/health` queda fuera de BIAN.
+
+    **Trazabilidad y datos sensibles**
+    - Cada respuesta incluye el encabezado `x-correlation-id`. Si la app envía uno (hasta 100 caracteres: letras, números y `._:-`) se conserva; si no, el servidor genera un UUID. Los errores lo repiten en `correlationId`.
+    - El celular se guarda **ofuscado** en la base de datos (`987654321` queda como `987****21`) y cifrado aparte. La API devuelve el número real solo al dueño del perfil y a la contraparte autorizada (HU-12, HU-13).
+    - Las listas usan paginación por **cursor opaco**: la app envía de vuelta `nextCursor` sin interpretarlo. Un cursor alterado responde `400`.
+  contact:
+    name: Equipo ReciclaTru
+servers:
+- url: https://api.reciclatru.example.com/api/v1
+  description: Producción
+- url: http://localhost:3000/api/v1
+  description: Desarrollo local
+tags:
+- name: Sistema
+- name: Party Authentication
+- name: Party Data Management
+- name: Location Data Management
+- name: Servicing Order
+security:
+- bearerAuth: []
+paths:
+  /health:
+    get:
+      tags: [Sistema]
+      summary: Estado del servicio
+      operationId: getHealth
+      security: []
+      responses:
+        '200':
+          description: Servicio activo
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [status]
+                properties:
+                  status:
+                    type: string
+                    example: UP
+                  version:
+                    type: string
+                    example: 1.0.0
+
+  # ───────────── Party Data Management: cuenta y perfil (HU-01, HU-03) ─────────────
+  /party-data-management/initiation:
+    post:
+      tags: [Party Data Management]
+      summary: Registrarme con un rol
+      description: |
+        HU-01. Crea la cuenta con correo, contraseña y rol. El correo se guarda en minúsculas y sin espacios,
+        con índice único. La contraseña se guarda con bcrypt. Tras registrarse, la app lleva a completar el perfil (HU-03).
+      operationId: initiatePartyDataManagement
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyDataManagementInitiateInputModel'
+            examples:
+              vecino:
+                summary: Registro de un vecino
+                value:
+                  email: rosa.carranza@example.com
+                  password: Reciclatru2026
+                  role: NEIGHBOR
+              reciclador:
+                summary: Registro de un reciclador
+                value:
+                  email: jorge.mendoza@example.com
+                  password: Reciclatru2026
+                  role: RECYCLER
+      responses:
+        '201':
+          description: Cuenta creada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDataManagementOutputModel'
+              examples:
+                vecino:
+                  summary: 'Cuenta recién creada: el perfil aún está incompleto (se completa en HU-03)'
+                  value:
+                    crReferenceId: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                    partyDataManagementInstanceRecord:
+                      id: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                      email: rosa.carranza@example.com
+                      role: NEIGHBOR
+                      fullName: null
+                      phone: null
+                      reference: null
+                      pickupPoint: null
+                      profileComplete: false
+                      createdAt: '2026-10-20T13:42:10Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '409':
+          description: Ya existe una cuenta con ese correo (`EMAIL_ALREADY_REGISTERED`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                duplicado:
+                  summary: Correo ya registrado
+                  value:
+                    type: https://api.reciclatru.example.com/errors/email-already-registered
+                    title: Correo ya registrado
+                    status: 409
+                    code: EMAIL_ALREADY_REGISTERED
+                    detail: Ya existe una cuenta con ese correo.
+                    instance: /api/v1/party-data-management/initiation
+      x-bian:
+        serviceDomain: Party Data Management
+        actionTerm: Initiate
+  /party-data-management/{cr-reference-id}/retrieval:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    get:
+      tags: [Party Data Management]
+      summary: Obtener mi perfil
+      description: Usa `me` como `cr-reference-id` para el usuario autenticado. Incluye si el perfil está completo (RN20).
+      operationId: retrievePartyDataManagement
+      responses:
+        '200':
+          description: Perfil del usuario autenticado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDataManagementOutputModel'
+              examples:
+                vecino_completo:
+                  summary: Vecino con perfil y ubicación completos (GET con `me`)
+                  value:
+                    crReferenceId: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                    partyDataManagementInstanceRecord:
+                      id: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                      email: rosa.carranza@example.com
+                      role: NEIGHBOR
+                      fullName: Rosa Elena Carranza Vega
+                      phone: '987654321'
+                      reference: Casa de dos pisos con portón verde, frente al parque
+                      pickupPoint:
+                        latitude: -8.077806
+                        longitude: -79.122183
+                        address: Av. Víctor Larco 1280, Huanchaco
+                        district: Huanchaco
+                      profileComplete: true
+                      createdAt: '2026-10-20T13:42:10Z'
+                reciclador:
+                  summary: Reciclador con perfil completo
+                  value:
+                    crReferenceId: c4d5e6f7-0819-4a2b-9c3d-4e5f60718293
+                    partyDataManagementInstanceRecord:
+                      id: c4d5e6f7-0819-4a2b-9c3d-4e5f60718293
+                      email: jorge.mendoza@example.com
+                      role: RECYCLER
+                      fullName: Jorge Luis Mendoza Ruiz
+                      phone: '944123456'
+                      reference: null
+                      pickupPoint: null
+                      profileComplete: true
+                      createdAt: '2026-10-19T16:05:40Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-bian:
+        serviceDomain: Party Data Management
+        actionTerm: Retrieve
+  /party-data-management/{cr-reference-id}/update:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Party Data Management]
+      summary: Completar o editar mi perfil
+      description: |
+        HU-03. Nombre y apellido y celular son obligatorios (se validan también en el backend).
+        El vecino puede agregar una referencia opcional de hasta 150 caracteres.
+        El correo y el rol no son editables.
+        Si cambia el celular, las contrapartes con pedidos activos ven el número nuevo.
+      operationId: updatePartyDataManagement
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyDataManagementUpdateInputModel'
+            examples:
+              vecino:
+                summary: Vecino completa su perfil con referencia
+                value:
+                  fullName: Rosa Elena Carranza Vega
+                  phone: '987654321'
+                  reference: Casa de dos pisos con portón verde, frente al parque
+              reciclador:
+                summary: Reciclador completa su perfil
+                value:
+                  fullName: Jorge Luis Mendoza Ruiz
+                  phone: '944123456'
+      responses:
+        '200':
+          description: Perfil actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDataManagementOutputModel'
+              examples:
+                vecino_sin_ubicacion:
+                  summary: Perfil guardado; falta marcar la ubicación (profileComplete = false)
+                  value:
+                    crReferenceId: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                    partyDataManagementInstanceRecord:
+                      id: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                      email: rosa.carranza@example.com
+                      role: NEIGHBOR
+                      fullName: Rosa Elena Carranza Vega
+                      phone: '987654321'
+                      reference: Casa de dos pisos con portón verde, frente al parque
+                      pickupPoint: null
+                      profileComplete: false
+                      createdAt: '2026-10-20T13:42:10Z'
+                reciclador:
+                  summary: Reciclador con perfil completo
+                  value:
+                    crReferenceId: c4d5e6f7-0819-4a2b-9c3d-4e5f60718293
+                    partyDataManagementInstanceRecord:
+                      id: c4d5e6f7-0819-4a2b-9c3d-4e5f60718293
+                      email: jorge.mendoza@example.com
+                      role: RECYCLER
+                      fullName: Jorge Luis Mendoza Ruiz
+                      phone: '944123456'
+                      reference: null
+                      pickupPoint: null
+                      profileComplete: true
+                      createdAt: '2026-10-19T16:05:40Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-bian:
+        serviceDomain: Party Data Management
+        actionTerm: Update
+
+  # ───────────── Party Authentication: sesión (HU-02) ─────────────
+  /party-authentication/initiation:
+    post:
+      tags: [Party Authentication]
+      summary: Iniciar sesión
+      description: |
+        HU-02. Devuelve un JWT que vence a los 30 días. Si los datos son incorrectos, el mensaje no indica cuál falló.
+        La app guarda el token en DataStore y lo envía en cada petición. Cerrar sesión solo borra el token en el teléfono.
+        Si el backend responde 401 en cualquier endpoint, la app borra el token y vuelve al inicio de sesión.
+      operationId: initiatePartyAuthentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PartyAuthenticationInitiateInputModel'
+            examples:
+              login:
+                summary: Inicio de sesión
+                value:
+                  email: rosa.carranza@example.com
+                  password: Reciclatru2026
+      responses:
+        '200':
+          description: Sesión iniciada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyAuthenticationOutputModel'
+              examples:
+                vecino:
+                  summary: JWT con vigencia de 30 días
+                  value:
+                    crReferenceId: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                    accessToken: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YjFjMmQzZS00ZjUwLTRhNjEtOGI3Mi05M2E0YjVjNmQ3ZTgiLCJyb2xlIjoiTkVJR0hCT1IiLCJpYXQiOjE3OTMwMjY4MDAsImV4cCI6MTc5NTYxODgwMH0.k3J9xV2mQ7pLw0YtB8nZc1RfD5uHsEaGoKiNj4TbXyU
+                    tokenType: Bearer
+                    expiresAt: '2026-11-25T15:00:00Z'
+                    partyDataManagementInstanceRecord:
+                      id: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                      email: rosa.carranza@example.com
+                      role: NEIGHBOR
+                      fullName: Rosa Elena Carranza Vega
+                      phone: '987654321'
+                      reference: Casa de dos pisos con portón verde, frente al parque
+                      pickupPoint:
+                        latitude: -8.077806
+                        longitude: -79.122183
+                        address: Av. Víctor Larco 1280, Huanchaco
+                        district: Huanchaco
+                      profileComplete: true
+                      createdAt: '2026-10-20T13:42:10Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      x-bian:
+        serviceDomain: Party Authentication
+        actionTerm: Initiate
+
+  # ───────────── Location Data Management: ubicación del vecino (HU-04) ─────────────
+  /location-data-management/{cr-reference-id}/pickup-point/update:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Location Data Management]
+      summary: Registrar mi ubicación de recojo (vecino)
+      description: |
+        HU-04. Guarda el punto marcado en el mapa (centro del mapa, 6 decimales), la dirección y el distrito.
+        No usa GPS. Cada pedido copia esta ubicación al publicarse; si se cambia, solo afecta a los pedidos posteriores (RN18).
+        Usa `me` como `cr-reference-id`.
+      operationId: updateLocationDataManagementPickupPoint
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PickupPointUpdateInputModel'
+            examples:
+              huanchaco:
+                summary: Punto marcado en el mapa (6 decimales)
+                value:
+                  latitude: -8.077806
+                  longitude: -79.122183
+                  address: Av. Víctor Larco 1280, Huanchaco
+                  district: Huanchaco
+      responses:
+        '200':
+          description: Ubicación guardada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PartyDataManagementOutputModel'
+              examples:
+                vecino_completo:
+                  summary: Con la ubicación el perfil queda completo
+                  value:
+                    crReferenceId: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                    partyDataManagementInstanceRecord:
+                      id: 7b1c2d3e-4f50-4a61-8b72-93a4b5c6d7e8
+                      email: rosa.carranza@example.com
+                      role: NEIGHBOR
+                      fullName: Rosa Elena Carranza Vega
+                      phone: '987654321'
+                      reference: Casa de dos pisos con portón verde, frente al parque
+                      pickupPoint:
+                        latitude: -8.077806
+                        longitude: -79.122183
+                        address: Av. Víctor Larco 1280, Huanchaco
+                        district: Huanchaco
+                      profileComplete: true
+                      createdAt: '2026-10-20T13:42:10Z'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-bian:
+        serviceDomain: Location Data Management
+        behaviorQualifier: PickupPoint
+        actionTerm: Update
+
+  # ───────────── Servicing Order: pedidos ─────────────
+  /servicing-order/initiation:
+    post:
+      tags: [Servicing Order]
+      summary: Publicar un pedido (vecino)
+      description: |
+        HU-05. De 1 a 10 ítems. Requiere perfil completo, incluida la ubicación (RN20).
+        El pedido queda `PENDING` con la ubicación del perfil. Las fotos se suben aparte (HU-09).
+        Se puede tener varios pedidos a la vez.
+      operationId: initiateServicingOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicingOrderInitiateInputModel'
+            examples:
+              dos_items:
+                summary: Pedido con dos ítems
+                value:
+                  items:
+                  - description: Botellas de plástico PET
+                    weightKg: 4.5
+                  - description: Cartón corrugado
+                    weightKg: 8.0
+      responses:
+        '201':
+          description: Pedido creado
+          headers:
+            Location:
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                recien_publicado:
+                  summary: PENDING sin fotos ni aceptaciones (las fotos se suben aparte)
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      totalWeightKg: 12.5
+                      photos: []
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 0
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions:
+                      - EDIT
+                      - CANCEL
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-bian:
+        serviceDomain: Servicing Order
+        actionTerm: Initiate
+  /servicing-order/retrieval:
+    get:
+      tags: [Servicing Order]
+      summary: Mis pedidos (vecino)
+      description: |
+        HU-06. Solo devuelve los pedidos del vecino del token. Resumen liviano, de 20 en 20, del más reciente al más antiguo.
+        `tab=ACTIVE` agrupa `PENDING` y `CONFIRMED`; `tab=HISTORY` agrupa `COLLECTED` y `CANCELLED`.
+        Si está `PENDING`, incluye `acceptanceCount`; si está `CONFIRMED`, el nombre del reciclador elegido.
+      operationId: retrieveServicingOrderList
+      parameters:
+      - name: tab
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, HISTORY]
+        example: ACTIVE
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Página de pedidos
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderListOutputModel'
+              examples:
+                activos:
+                  summary: 'Pestaña ACTIVE: pendiente y confirmado'
+                  value:
+                    items:
+                    - id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 13.7
+                      thumbnailUrl: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      chosenRecyclerName: null
+                      alreadyAccepted: null
+                      createdAt: '2026-10-26T14:05:00Z'
+                    - id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      itemCount: 2
+                      totalWeightKg: 11.5
+                      thumbnailUrl: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: Jorge Luis Mendoza Ruiz
+                      alreadyAccepted: null
+                      createdAt: '2026-10-23T14:10:00Z'
+                    nextCursor: null
+                activos_con_pagina:
+                  summary: Hay más páginas
+                  value:
+                    items:
+                    - id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 13.7
+                      thumbnailUrl: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      chosenRecyclerName: null
+                      alreadyAccepted: null
+                      createdAt: '2026-10-26T14:05:00Z'
+                    - id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      itemCount: 2
+                      totalWeightKg: 11.5
+                      thumbnailUrl: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: Jorge Luis Mendoza Ruiz
+                      alreadyAccepted: null
+                      createdAt: '2026-10-23T14:10:00Z'
+                    nextCursor: eyJjIjoiMjAyNi0xMC0yM1QxNDoxMDowMFoiLCJpIjoiNWIyZTlkNDEtOGMzNy00ZjA2LWExZDgtN2UzYzZiOWYwYTI0In0
+                historial:
+                  summary: 'Pestaña HISTORY: recolectado y cancelado'
+                  value:
+                    items:
+                    - id: e17c4a90-3b58-4d2f-8a6e-1f9d0c7b5e83
+                      status: COLLECTED
+                      itemCount: 2
+                      totalWeightKg: 8.0
+                      thumbnailUrl: /api/v1/servicing-order/e17c4a90-3b58-4d2f-8a6e-1f9d0c7b5e83/photo/e8f90a1b-2b34-4c45-a6e7-08192a3b4c53/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: null
+                      createdAt: '2026-10-18T13:00:00Z'
+                    - id: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                      status: CANCELLED
+                      itemCount: 1
+                      totalWeightKg: 3.0
+                      thumbnailUrl: /api/v1/servicing-order/92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70/photo/c5d6e7f8-0912-4b23-84c5-e6f7a8091a31/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 1
+                      chosenRecyclerName: null
+                      alreadyAccepted: null
+                      createdAt: '2026-10-25T19:00:00Z'
+                    nextCursor: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-bian:
+        serviceDomain: Servicing Order
+        actionTerm: Retrieve
+  /servicing-order/availability/retrieval:
+    get:
+      tags: [Servicing Order]
+      summary: Pedidos disponibles (reciclador)
+      description: |
+        HU-10. Solo pedidos `PENDING`. Si se envían `lat` y `lng` (ACCESS_COARSE_LOCATION), se ordenan del más cercano al más lejano
+        con la fórmula de Haversine en PostgreSQL; sin ubicación, se ordenan por fecha. **La ubicación no se guarda.**
+        Nunca incluye dirección, nombre ni teléfono del vecino. La distancia se devuelve aproximada (redondeada a 0,1 km).
+        Los pedidos ya aceptados por el reciclador llevan `alreadyAccepted = true`. De 20 en 20.
+      operationId: retrieveServicingOrderAvailability
+      parameters:
+      - name: lat
+        in: query
+        schema:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+        example: -8.093
+      - name: lng
+        in: query
+        schema:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+        example: -79.095
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Pedidos disponibles
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderAvailabilityOutputModel'
+              examples:
+                con_ubicacion:
+                  summary: 'Con lat y lng: ordenado del más cercano al más lejano'
+                  value:
+                    sortedBy: DISTANCE
+                    items:
+                    - id: b8e2c6a4-1d73-4f95-a0b6-3e9d7c2f5a18
+                      status: PENDING
+                      itemCount: 2
+                      totalWeightKg: 6.4
+                      thumbnailUrl: null
+                      zone: Víctor Larco Herrera
+                      approximateDistanceKm: 0.8
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: false
+                      createdAt: '2026-10-26T13:20:00Z'
+                    - id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 13.7
+                      thumbnailUrl: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: 3.4
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: true
+                      createdAt: '2026-10-26T14:05:00Z'
+                    - id: 4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 21.3
+                      thumbnailUrl: /api/v1/servicing-order/4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05/photo/f90a1b2c-3c45-4d56-b7f8-192a3b4c5d64/retrieval
+                      zone: Trujillo
+                      approximateDistanceKm: 6.1
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: false
+                      createdAt: '2026-10-25T21:45:00Z'
+                    nextCursor: null
+                sin_ubicacion:
+                  summary: 'Sin ubicación: ordenado por fecha, sin distancia'
+                  value:
+                    sortedBy: DATE
+                    items:
+                    - id: b8e2c6a4-1d73-4f95-a0b6-3e9d7c2f5a18
+                      status: PENDING
+                      itemCount: 2
+                      totalWeightKg: 6.4
+                      thumbnailUrl: null
+                      zone: Víctor Larco Herrera
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: false
+                      createdAt: '2026-10-26T13:20:00Z'
+                    - id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 13.7
+                      thumbnailUrl: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: true
+                      createdAt: '2026-10-26T14:05:00Z'
+                    - id: 4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05
+                      status: PENDING
+                      itemCount: 3
+                      totalWeightKg: 21.3
+                      thumbnailUrl: /api/v1/servicing-order/4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05/photo/f90a1b2c-3c45-4d56-b7f8-192a3b4c5d64/retrieval
+                      zone: Trujillo
+                      approximateDistanceKm: null
+                      acceptanceCount: null
+                      chosenRecyclerName: null
+                      alreadyAccepted: false
+                      createdAt: '2026-10-25T21:45:00Z'
+                    nextCursor: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Availability
+        actionTerm: Retrieve
+  /servicing-order/acceptance/retrieval:
+    get:
+      tags: [Servicing Order]
+      summary: Mis pedidos aceptados (reciclador)
+      description: |
+        HU-14. Solo las aceptaciones del reciclador del token, de 20 en 20. Cada una trae `acceptanceLabel`, que combina el
+        estado de la aceptación con el del pedido. `tab=ACTIVE` agrupa `AWAITING_CONFIRMATION` y `CHOSEN`
+        (los elegidos primero); `tab=HISTORY` agrupa `NOT_CHOSEN`, `CANCELLED_BY_NEIGHBOR` y `COLLECTED`.
+      operationId: retrieveServicingOrderAcceptanceList
+      parameters:
+      - name: tab
+        in: query
+        schema:
+          type: string
+          enum: [ACTIVE, HISTORY]
+        example: ACTIVE
+      - $ref: '#/components/parameters/Limit'
+      - $ref: '#/components/parameters/Cursor'
+      responses:
+        '200':
+          description: Aceptaciones del reciclador
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MyAcceptanceListOutputModel'
+              examples:
+                activas:
+                  summary: 'Pestaña ACTIVE: los elegidos primero'
+                  value:
+                    items:
+                    - orderId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      acceptanceLabel: CHOSEN
+                      zone: Huanchaco
+                      totalWeightKg: 11.5
+                      acceptedAt: '2026-10-23T18:40:00Z'
+                    - orderId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      acceptanceLabel: AWAITING_CONFIRMATION
+                      zone: Huanchaco
+                      totalWeightKg: 13.7
+                      acceptedAt: '2026-10-26T15:10:00Z'
+                    nextCursor: null
+                historial:
+                  summary: Pestaña HISTORY
+                  value:
+                    items:
+                    - orderId: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                      acceptanceLabel: CANCELLED_BY_NEIGHBOR
+                      zone: Huanchaco
+                      totalWeightKg: 3.0
+                      acceptedAt: '2026-10-25T19:30:00Z'
+                    - orderId: e17c4a90-3b58-4d2f-8a6e-1f9d0c7b5e83
+                      acceptanceLabel: COLLECTED
+                      zone: Huanchaco
+                      totalWeightKg: 8.0
+                      acceptedAt: '2026-10-18T15:00:00Z'
+                    - orderId: 1c5e8a37-9b04-4d62-a7f3-d6b2e0c49a81
+                      acceptanceLabel: NOT_CHOSEN
+                      zone: La Esperanza
+                      totalWeightKg: 7.2
+                      acceptedAt: '2026-10-20T15:00:00Z'
+                    nextCursor: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Acceptance
+        actionTerm: Retrieve
+  /servicing-order/{cr-reference-id}/retrieval:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    get:
+      tags: [Servicing Order]
+      summary: Detalle de un pedido
+      description: |
+        HU-06, HU-11, HU-15. El backend decide qué campos enviar según el rol y el estado (no basta con ocultarlos en la app):
+        - **Vecino dueño:** ítems, fotos, estado y acciones posibles.
+        - **Reciclador sin aceptar:** ítems, pesos, fotos, zona, distancia aproximada y cantidad de aceptaciones. Sin dirección, referencia, nombre ni teléfono.
+        - **Reciclador con aceptación `ACCEPTED` o `CHOSEN`, pedido `PENDING` o `CONFIRMED`:** además `counterpart` (nombre y teléfono del vecino).
+        - **Reciclador elegido con el pedido `CONFIRMED`:** además dirección, referencia y coordenadas para «Cómo llegar».
+        - **Pedido ya no `PENDING` y reciclador sin aceptación:** 409 `ORDER_NOT_AVAILABLE` (la app muestra «Este pedido ya no está disponible»).
+        Un reciclador que ya fue descartado, o con el pedido cancelado, solo ve la información del pedido, sin dirección ni teléfono.
+      operationId: retrieveServicingOrder
+      parameters:
+      - name: lat
+        in: query
+        description: Opcional. Solo para calcular la distancia aproximada al reciclador; no se guarda.
+        schema:
+          type: number
+          format: double
+        example: -8.093
+      - name: lng
+        in: query
+        schema:
+          type: number
+          format: double
+        example: -79.095
+      responses:
+        '200':
+          description: Pedido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                vecino_pendiente:
+                  summary: Vecino dueño, PENDING con 2 aceptaciones
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      - description: Latas de aluminio
+                        weightKg: 1.2
+                      totalWeightKg: 13.7
+                      photos:
+                      - id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      - id: b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions:
+                      - CHOOSE_RECYCLER
+                      - CANCEL
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+                vecino_confirmado:
+                  summary: 'Vecino dueño, CONFIRMED: ve el contacto del reciclador elegido'
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      acceptanceStatus: null
+                      chosenRecyclerName: Jorge Luis Mendoza Ruiz
+                      counterpart:
+                        fullName: Jorge Luis Mendoza Ruiz
+                        phone: '944123456'
+                      pickup: null
+                      availableActions:
+                      - MARK_COLLECTED
+                      - CANCEL
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: null
+                      cancelledAt: null
+                vecino_recolectado:
+                  summary: Vecino dueño, COLLECTED (estado final)
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: COLLECTED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: '2026-10-26T20:15:00Z'
+                      cancelledAt: null
+                vecino_cancelado:
+                  summary: Vecino dueño, CANCELLED (estado final)
+                  value:
+                    crReferenceId: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                    servicingOrderInstanceRecord:
+                      id: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                      status: CANCELLED
+                      items:
+                      - description: Cajas de cartón
+                        weightKg: 3.0
+                      totalWeightKg: 3.0
+                      photos:
+                      - id: c5d6e7f8-0912-4b23-84c5-e6f7a8091a31
+                        url: /api/v1/servicing-order/92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70/photo/c5d6e7f8-0912-4b23-84c5-e6f7a8091a31/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 1
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-25T19:00:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: '2026-10-25T20:00:00Z'
+                reciclador_sin_aceptar:
+                  summary: 'Reciclador que aún no acepta: sin dirección, nombre ni teléfono'
+                  value:
+                    crReferenceId: b8e2c6a4-1d73-4f95-a0b6-3e9d7c2f5a18
+                    servicingOrderInstanceRecord:
+                      id: b8e2c6a4-1d73-4f95-a0b6-3e9d7c2f5a18
+                      status: PENDING
+                      items:
+                      - description: Latas de aluminio
+                        weightKg: 2.4
+                      - description: Botellas de plástico PET
+                        weightKg: 4.0
+                      totalWeightKg: 6.4
+                      photos: []
+                      zone: Víctor Larco Herrera
+                      approximateDistanceKm: 0.8
+                      acceptanceCount: 0
+                      alreadyAccepted: false
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions:
+                      - ACCEPT
+                      createdAt: '2026-10-26T13:20:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+                reciclador_aceptado:
+                  summary: 'Reciclador con aceptación ACCEPTED: ve nombre y teléfono, no la dirección'
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      - description: Latas de aluminio
+                        weightKg: 1.2
+                      totalWeightKg: 13.7
+                      photos:
+                      - id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      - id: b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: 3.4
+                      acceptanceCount: 2
+                      alreadyAccepted: true
+                      acceptanceStatus: ACCEPTED
+                      chosenRecyclerName: null
+                      counterpart:
+                        fullName: Rosa Elena Carranza Vega
+                        phone: '987654321'
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+                reciclador_elegido:
+                  summary: 'Reciclador elegido con el pedido CONFIRMED: ve la dirección exacta (RN13)'
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: 3.4
+                      acceptanceCount: 2
+                      alreadyAccepted: true
+                      acceptanceStatus: CHOSEN
+                      chosenRecyclerName: null
+                      counterpart:
+                        fullName: Rosa Elena Carranza Vega
+                        phone: '987654321'
+                      pickup:
+                        address: Av. Víctor Larco 1280, Huanchaco
+                        reference: Casa de dos pisos con portón verde, frente al parque
+                        latitude: -8.077806
+                        longitude: -79.122183
+                      availableActions:
+                      - GO_PICKUP
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: null
+                      cancelledAt: null
+                reciclador_descartado:
+                  summary: 'Reciclador DISCARDED: solo información del pedido, sin dirección ni teléfono'
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: 3.4
+                      acceptanceCount: 2
+                      alreadyAccepted: true
+                      acceptanceStatus: DISCARDED
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: null
+                      cancelledAt: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido ya no está disponible para este reciclador (`ORDER_NOT_AVAILABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_disponible:
+                  summary: Reciclador sin aceptación y pedido ya no PENDING
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-available
+                    title: Este pedido ya no está disponible
+                    status: 409
+                    code: ORDER_NOT_AVAILABLE
+                    detail: El pedido ya no está pendiente.
+                    instance: /api/v1/servicing-order/4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05/acceptance/initiation
+      x-bian:
+        serviceDomain: Servicing Order
+        actionTerm: Retrieve
+  /servicing-order/{cr-reference-id}/update:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Servicing Order]
+      summary: Editar un pedido (vecino)
+      description: |
+        HU-07 (RN11). Solo si el pedido está `PENDING` y sin aceptaciones; si no, 409 `ORDER_NOT_EDITABLE`.
+        Aplica las mismas validaciones que al publicar. La ubicación no se edita.
+        Las fotos se agregan o quitan con los endpoints de fotos.
+      operationId: updateServicingOrder
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ServicingOrderUpdateInputModel'
+            examples:
+              agregar_item:
+                summary: Se agrega un ítem al pedido
+                value:
+                  items:
+                  - description: Botellas de plástico PET
+                    weightKg: 4.5
+                  - description: Cartón corrugado
+                    weightKg: 8.0
+                  - description: Latas de aluminio
+                    weightKg: 1.2
+      responses:
+        '200':
+          description: Pedido actualizado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                editado:
+                  summary: Pedido PENDING editado
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      - description: Latas de aluminio
+                        weightKg: 1.2
+                      totalWeightKg: 13.7
+                      photos:
+                      - id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      - id: b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 0
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions:
+                      - EDIT
+                      - CANCEL
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Ya tiene aceptaciones o no está `PENDING` (`ORDER_NOT_EDITABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_editable:
+                  summary: Ya tiene aceptaciones
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-editable
+                    title: El pedido ya no se puede editar
+                    status: 409
+                    code: ORDER_NOT_EDITABLE
+                    detail: El pedido ya tiene aceptaciones o dejó de estar pendiente.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/update
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-bian:
+        serviceDomain: Servicing Order
+        actionTerm: Update
+  /servicing-order/{cr-reference-id}/termination:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Servicing Order]
+      summary: Cancelar un pedido (vecino)
+      description: |
+        HU-08 (RN16, RN17). Solo si está `PENDING` o `CONFIRMED`; si no, 409 `ORDER_NOT_CANCELLABLE`.
+        Es un borrado lógico: el pedido y sus fotos quedan en el historial. No se puede reactivar.
+        Los recicladores que lo aceptaron lo ven como `CANCELLED_BY_NEIGHBOR`; sus aceptaciones no cambian de estado
+        y dejan de ver la dirección y el teléfono.
+      operationId: terminateServicingOrder
+      responses:
+        '200':
+          description: Pedido cancelado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                cancelado:
+                  summary: Pedido cancelado (borrado lógico)
+                  value:
+                    crReferenceId: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                    servicingOrderInstanceRecord:
+                      id: 92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70
+                      status: CANCELLED
+                      items:
+                      - description: Cajas de cartón
+                        weightKg: 3.0
+                      totalWeightKg: 3.0
+                      photos:
+                      - id: c5d6e7f8-0912-4b23-84c5-e6f7a8091a31
+                        url: /api/v1/servicing-order/92d6b0f3-a481-4c7e-b5d9-6a3e8f1c2b70/photo/c5d6e7f8-0912-4b23-84c5-e6f7a8091a31/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 1
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-25T19:00:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: '2026-10-25T20:00:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: Ya recolectado o cancelado (`ORDER_NOT_CANCELLABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_cancelable:
+                  summary: Ya recolectado o cancelado
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-cancellable
+                    title: El pedido no se puede cancelar
+                    status: 409
+                    code: ORDER_NOT_CANCELLABLE
+                    detail: El pedido ya fue recolectado o cancelado.
+                    instance: /api/v1/servicing-order/e17c4a90-3b58-4d2f-8a6e-1f9d0c7b5e83/termination
+      x-bian:
+        serviceDomain: Servicing Order
+        actionTerm: Terminate
+
+  # ───────────── Servicing Order: fotos (HU-09) ─────────────
+  /servicing-order/{cr-reference-id}/photo/initiation:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    post:
+      tags: [Servicing Order]
+      summary: Subir una foto al pedido (vecino)
+      description: |
+        HU-09 (RN07). Se llama después de crear el pedido, una vez por foto. `multipart/form-data`.
+        El backend valida el máximo de 3 por pedido, el tipo real (JPEG o PNG) y el tamaño (máx. 2 MB), sube la imagen
+        a un bucket privado con clave única `{order_id}/{uuid}.jpg` y guarda solo esa clave en la base de datos.
+        La app comprime cada foto a unos 300 KB antes de enviarla. Solo mientras el pedido sea editable (HU-07).
+      operationId: initiateServicingOrderPhoto
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Imagen JPEG o PNG (tipos y tamaño máximo a confirmar por el equipo).
+      responses:
+        '201':
+          description: Foto guardada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderPhoto'
+              examples:
+                foto:
+                  summary: Foto guardada; `url` es la ruta estable del endpoint de recuperación
+                  value:
+                    id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                    url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido ya no es editable (`ORDER_NOT_EDITABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_editable:
+                  summary: El pedido ya no es editable
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-editable
+                    title: El pedido ya no se puede editar
+                    status: 409
+                    code: ORDER_NOT_EDITABLE
+                    detail: El pedido ya tiene aceptaciones o dejó de estar pendiente.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/update
+        '413':
+          description: Archivo demasiado grande (`PHOTO_TOO_LARGE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                muy_grande:
+                  summary: Foto de más de 2 MB
+                  value:
+                    type: https://api.reciclatru.example.com/errors/photo-too-large
+                    title: La foto es demasiado grande
+                    status: 413
+                    code: PHOTO_TOO_LARGE
+                    detail: El tamaño máximo por foto es 2 MB.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/initiation
+        '422':
+          description: Ya tiene 3 fotos o el tipo no es válido (`PHOTO_LIMIT_REACHED`, `PHOTO_INVALID_TYPE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                limite:
+                  summary: Ya tiene 3 fotos
+                  value:
+                    type: https://api.reciclatru.example.com/errors/photo-limit-reached
+                    title: Límite de fotos alcanzado
+                    status: 422
+                    code: PHOTO_LIMIT_REACHED
+                    detail: Un pedido admite hasta 3 fotos.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/initiation
+                tipo:
+                  summary: Archivo que no es JPEG ni PNG
+                  value:
+                    type: https://api.reciclatru.example.com/errors/photo-invalid-type
+                    title: Tipo de archivo no válido
+                    status: 422
+                    code: PHOTO_INVALID_TYPE
+                    detail: Solo se admiten imágenes JPEG o PNG.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/initiation
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Photo
+        actionTerm: Initiate
+  /servicing-order/{cr-reference-id}/photo/{photo-id}/retrieval:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    - $ref: '#/components/parameters/PhotoId'
+    get:
+      tags: [Servicing Order]
+      summary: Obtener una foto del pedido
+      description: |
+        Verifica que el usuario pueda ver el pedido (vecino dueño o reciclador que puede verlo) y responde 302 hacia una URL firmada de vida corta (5 minutos) del almacenamiento privado. La app sigue la redirección con Coil. No se entrega nunca una URL permanente.
+      operationId: retrieveServicingOrderPhoto
+      responses:
+        '302':
+          description: Redirección a la URL firmada de la imagen
+          headers:
+            Location:
+              schema:
+                type: string
+                format: uri
+            Cache-Control:
+              schema:
+                type: string
+                example: private, max-age=300
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Photo
+        actionTerm: Retrieve
+  /servicing-order/{cr-reference-id}/photo/{photo-id}/termination:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    - $ref: '#/components/parameters/PhotoId'
+    put:
+      tags: [Servicing Order]
+      summary: Quitar una foto del pedido (vecino)
+      description: Solo mientras el pedido sea editable. La foto se elimina también del bucket de almacenamiento.
+      operationId: terminateServicingOrderPhoto
+      responses:
+        '204':
+          description: Foto eliminada
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido ya no es editable (`ORDER_NOT_EDITABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_editable:
+                  summary: El pedido ya no es editable
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-editable
+                    title: El pedido ya no se puede editar
+                    status: 409
+                    code: ORDER_NOT_EDITABLE
+                    detail: El pedido ya tiene aceptaciones o dejó de estar pendiente.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/update
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Photo
+        actionTerm: Terminate
+
+  # ───────────── Servicing Order: aceptación, elección y cierre ─────────────
+  /servicing-order/{cr-reference-id}/acceptance/initiation:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    post:
+      tags: [Servicing Order]
+      summary: Aceptar un pedido (reciclador)
+      description: |
+        HU-12 (RN09). Crea una aceptación en estado `ACCEPTED`. Varios recicladores pueden aceptar el mismo pedido mientras esté `PENDING`.
+        Un reciclador acepta cada pedido una sola vez (restricción única en base de datos; un doble toque registra una sola aceptación).
+        Requiere perfil completo. Revela nombre y teléfono del vecino, no la dirección.
+        Se ejecuta en una transacción; si el pedido ya no está `PENDING`, 409 `ORDER_NOT_AVAILABLE`.
+      operationId: initiateServicingOrderAcceptance
+      responses:
+        '201':
+          description: Aceptación registrada
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                aceptado:
+                  summary: 'Aceptación creada (ACCEPTED): revela nombre y teléfono del vecino'
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      - description: Latas de aluminio
+                        weightKg: 1.2
+                      totalWeightKg: 13.7
+                      photos:
+                      - id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      - id: b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 1
+                      alreadyAccepted: true
+                      acceptanceStatus: ACCEPTED
+                      chosenRecyclerName: null
+                      counterpart:
+                        fullName: Rosa Elena Carranza Vega
+                        phone: '987654321'
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+        '200':
+          description: Ya había aceptado este pedido (doble toque); devuelve el pedido sin duplicar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                ya_aceptado:
+                  summary: 'Doble toque: ya existía la aceptación'
+                  value:
+                    crReferenceId: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                    servicingOrderInstanceRecord:
+                      id: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+                      status: PENDING
+                      items:
+                      - description: Botellas de plástico PET
+                        weightKg: 4.5
+                      - description: Cartón corrugado
+                        weightKg: 8.0
+                      - description: Latas de aluminio
+                        weightKg: 1.2
+                      totalWeightKg: 13.7
+                      photos:
+                      - id: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+                      - id: b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920
+                        url: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/b4c5d6e7-f809-4a12-b3c4-d5e6f7a80920/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 1
+                      alreadyAccepted: true
+                      acceptanceStatus: ACCEPTED
+                      chosenRecyclerName: null
+                      counterpart:
+                        fullName: Rosa Elena Carranza Vega
+                        phone: '987654321'
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-26T14:05:00Z'
+                      confirmedAt: null
+                      collectedAt: null
+                      cancelledAt: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido ya no está `PENDING` (`ORDER_NOT_AVAILABLE`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_disponible:
+                  summary: El pedido ya no está PENDING
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-available
+                    title: Este pedido ya no está disponible
+                    status: 409
+                    code: ORDER_NOT_AVAILABLE
+                    detail: El pedido ya no está pendiente.
+                    instance: /api/v1/servicing-order/4a7f0d93-e5c1-4b28-9d6a-8f2b1e7c3a05/acceptance/initiation
+        '422':
+          $ref: '#/components/responses/Unprocessable'
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Acceptance
+        actionTerm: Initiate
+  /servicing-order/{cr-reference-id}/acceptance/retrieval:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    get:
+      tags: [Servicing Order]
+      summary: Ver quiénes aceptaron mi pedido (vecino)
+      description: |
+        HU-13. Lista de recicladores que aceptaron (nombre, celular, fecha y hora), del primero al último en aceptar.
+        Solo el vecino dueño.
+      operationId: retrieveServicingOrderAcceptance
+      responses:
+        '200':
+          description: Aceptaciones del pedido
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [items]
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/AcceptanceRecord'
+              examples:
+                dos_aceptaciones:
+                  summary: Aceptaciones del pedido P, de la primera a la última
+                  value:
+                    items:
+                    - id: 3c9a7e15-d2b4-4f68-9a01-5e8b2d4c6f97
+                      status: ACCEPTED
+                      fullName: Jorge Luis Mendoza Ruiz
+                      phone: '944123456'
+                      acceptedAt: '2026-10-26T15:10:00Z'
+                    - id: 8e1d5b72-4a9c-4e30-b6f8-0c7a3d9e1b45
+                      status: ACCEPTED
+                      fullName: Marleni Quispe Rojas
+                      phone: '955876543'
+                      acceptedAt: '2026-10-26T16:40:00Z'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Acceptance
+        actionTerm: Retrieve
+  /servicing-order/{cr-reference-id}/confirmation/execution:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Servicing Order]
+      summary: Elegir un reciclador (vecino)
+      description: |
+        HU-13 (RN12). En una sola transacción: el pedido pasa a `CONFIRMED`, la aceptación elegida a `CHOSEN` y las demás a `DISCARDED`.
+        La elección no se puede cambiar. Si el pedido ya no está `PENDING` (doble toque, o cancelado), 409 `ORDER_NOT_PENDING`.
+      operationId: executeServicingOrderConfirmation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [acceptanceId]
+              properties:
+                acceptanceId:
+                  type: string
+                  format: uuid
+            examples:
+              elegir:
+                summary: El vecino elige la aceptación de Jorge sobre el pedido Q
+                value:
+                  acceptanceId: 9f3b6d12-7a84-4c05-b1e9-2d5c8a0e4f73
+      responses:
+        '200':
+          description: Reciclador elegido
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                confirmado:
+                  summary: Pedido CONFIRMED; las demás aceptaciones pasan a DISCARDED
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: CONFIRMED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      acceptanceStatus: null
+                      chosenRecyclerName: Jorge Luis Mendoza Ruiz
+                      counterpart:
+                        fullName: Jorge Luis Mendoza Ruiz
+                        phone: '944123456'
+                      pickup: null
+                      availableActions:
+                      - MARK_COLLECTED
+                      - CANCEL
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: null
+                      cancelledAt: null
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido ya no está `PENDING` (`ORDER_NOT_PENDING`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_pendiente:
+                  summary: Doble toque o pedido cancelado
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-pending
+                    title: El pedido ya no está pendiente
+                    status: 409
+                    code: ORDER_NOT_PENDING
+                    detail: Ya elegiste un reciclador o el pedido fue cancelado.
+                    instance: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/confirmation/execution
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Confirmation
+        actionTerm: Execute
+  /servicing-order/{cr-reference-id}/fulfillment/execution:
+    parameters:
+    - $ref: '#/components/parameters/CrReferenceId'
+    put:
+      tags: [Servicing Order]
+      summary: Marcar como Recolectado (vecino)
+      description: |
+        HU-16 (RN15). Solo el vecino dueño y solo si el pedido está `CONFIRMED`; si no, 409 `ORDER_NOT_CONFIRMED`.
+        Estado final: no se deshace. La aceptación del elegido no cambia. Desde ese momento el reciclador deja de ver
+        la dirección y el teléfono. Un doble toque marca el pedido una sola vez.
+      operationId: executeServicingOrderFulfillment
+      responses:
+        '200':
+          description: Pedido recolectado
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicingOrderOutputModel'
+              examples:
+                recolectado:
+                  summary: Pedido COLLECTED (final)
+                  value:
+                    crReferenceId: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                    servicingOrderInstanceRecord:
+                      id: 5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24
+                      status: COLLECTED
+                      items:
+                      - description: Botellas de vidrio
+                        weightKg: 6.0
+                      - description: Periódicos y revistas
+                        weightKg: 5.5
+                      totalWeightKg: 11.5
+                      photos:
+                      - id: d6e7f809-1a23-4b34-95d6-f7a8091a2b42
+                        url: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/photo/d6e7f809-1a23-4b34-95d6-f7a8091a2b42/retrieval
+                      zone: Huanchaco
+                      approximateDistanceKm: null
+                      acceptanceCount: 2
+                      acceptanceStatus: null
+                      chosenRecyclerName: null
+                      counterpart: null
+                      pickup: null
+                      availableActions: []
+                      createdAt: '2026-10-23T14:10:00Z'
+                      confirmedAt: '2026-10-24T16:30:00Z'
+                      collectedAt: '2026-10-26T20:15:00Z'
+                      cancelledAt: null
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbidden'
+        '404':
+          $ref: '#/components/responses/NotFound'
+        '409':
+          description: El pedido no está `CONFIRMED` (`ORDER_NOT_CONFIRMED`)
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+              examples:
+                no_confirmado:
+                  summary: El pedido no está CONFIRMED
+                  value:
+                    type: https://api.reciclatru.example.com/errors/order-not-confirmed
+                    title: El pedido no está confirmado
+                    status: 409
+                    code: ORDER_NOT_CONFIRMED
+                    detail: Solo se puede marcar como recolectado un pedido confirmado.
+                    instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/fulfillment/execution
+      x-bian:
+        serviceDomain: Servicing Order
+        behaviorQualifier: Fulfillment
+        actionTerm: Execute
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT (30 días)
+      description: Token devuelto por `/party-authentication/initiation`. El backend valida el token y el rol en cada endpoint (RNF-04).
+  parameters:
+    CrReferenceId:
+      name: cr-reference-id
+      in: path
+      required: true
+      description: Referencia del Control Record (BIAN). En Party Data Management y Location Data Management acepta el alias `me`.
+      schema:
+        type: string
+      examples:
+        me:
+          summary: Usuario autenticado (solo Party y Location)
+          value: me
+        pedido:
+          summary: Referencia de un pedido
+          value: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+    PhotoId:
+      name: photo-id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+      example: a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819
+    Limit:
+      name: limit
+      in: query
+      schema:
+        type: integer
+        minimum: 1
+        maximum: 50
+        default: 20
+        example: 20
+    Cursor:
+      name: cursor
+      in: query
+      description: Valor `nextCursor` de la página anterior
+      schema:
+        type: string
+      example: eyJjIjoiMjAyNi0xMC0yM1QxNDoxMDowMFoiLCJpIjoiNWIyZTlkNDEtOGMzNy00ZjA2LWExZDgtN2UzYzZiOWYwYTI0In0
+  responses:
+    BadRequest:
+      description: Datos inválidos (`VALIDATION_ERROR`)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            validacion:
+              summary: Contraseña muy corta
+              value:
+                type: https://api.reciclatru.example.com/errors/validation-error
+                title: Datos inválidos
+                status: 400
+                code: VALIDATION_ERROR
+                detail: Revisa los campos indicados.
+                instance: /api/v1/party-data-management/initiation
+                errors:
+                - field: password
+                  message: Debe tener al menos 8 caracteres
+            celular:
+              summary: Celular con formato inválido
+              value:
+                type: https://api.reciclatru.example.com/errors/validation-error
+                title: Datos inválidos
+                status: 400
+                code: VALIDATION_ERROR
+                detail: Revisa los campos indicados.
+                instance: /api/v1/party-data-management/me/update
+                errors:
+                - field: phone
+                  message: Debe tener 9 dígitos y empezar con 9
+    Unauthorized:
+      description: Token ausente, inválido o vencido, o credenciales incorrectas (`UNAUTHENTICATED`)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            token:
+              summary: 'Token ausente, inválido o vencido: la app borra el token y vuelve al inicio'
+              value:
+                type: https://api.reciclatru.example.com/errors/unauthenticated
+                title: Sesión no válida
+                status: 401
+                code: UNAUTHENTICATED
+                detail: Token ausente, inválido o vencido.
+                instance: /api/v1/servicing-order/retrieval
+            credenciales:
+              summary: Login con datos incorrectos (no indica cuál falló)
+              value:
+                type: https://api.reciclatru.example.com/errors/unauthenticated
+                title: Credenciales incorrectas
+                status: 401
+                code: UNAUTHENTICATED
+                detail: Correo o contraseña incorrectos.
+                instance: /api/v1/party-authentication/initiation
+    Forbidden:
+      description: 'Sin permiso. Códigos: `FORBIDDEN_ROLE`, `NOT_ORDER_OWNER`, `NOT_CHOSEN_RECYCLER`.'
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            rol:
+              summary: Rol sin permiso
+              value:
+                type: https://api.reciclatru.example.com/errors/forbidden-role
+                title: Acción no permitida para tu rol
+                status: 403
+                code: FORBIDDEN_ROLE
+                detail: Solo un vecino puede publicar pedidos.
+                instance: /api/v1/servicing-order/initiation
+            no_dueno:
+              summary: No es el dueño del pedido
+              value:
+                type: https://api.reciclatru.example.com/errors/not-order-owner
+                title: No eres el dueño del pedido
+                status: 403
+                code: NOT_ORDER_OWNER
+                detail: Solo el vecino que publicó el pedido puede hacer esto.
+                instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/update
+            no_elegido:
+              summary: No es el reciclador elegido
+              value:
+                type: https://api.reciclatru.example.com/errors/not-chosen-recycler
+                title: No eres el reciclador elegido
+                status: 403
+                code: NOT_CHOSEN_RECYCLER
+                detail: Solo el reciclador elegido puede ver la dirección exacta.
+                instance: /api/v1/servicing-order/5b2e9d41-8c37-4f06-a1d8-7e3c6b9f0a24/retrieval
+    NotFound:
+      description: Recurso inexistente (`NOT_FOUND`)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            no_encontrado:
+              summary: El recurso no existe
+              value:
+                type: https://api.reciclatru.example.com/errors/not-found
+                title: No encontrado
+                status: 404
+                code: NOT_FOUND
+                detail: El recurso solicitado no existe.
+                instance: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/retrieval
+    Unprocessable:
+      description: Regla de negocio incumplida (`PROFILE_INCOMPLETE`, `INVALID_ITEMS`, `INVALID_WEIGHT`, etc.)
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            perfil:
+              summary: Perfil incompleto
+              value:
+                type: https://api.reciclatru.example.com/errors/profile-incomplete
+                title: Perfil incompleto
+                status: 422
+                code: PROFILE_INCOMPLETE
+                detail: Completa tu nombre, celular y ubicación antes de publicar un pedido.
+                instance: /api/v1/servicing-order/initiation
+            items:
+              summary: Más de 10 o ningún ítem
+              value:
+                type: https://api.reciclatru.example.com/errors/invalid-items
+                title: Cantidad de ítems inválida
+                status: 422
+                code: INVALID_ITEMS
+                detail: Un pedido debe tener entre 1 y 10 ítems.
+                instance: /api/v1/servicing-order/initiation
+            peso:
+              summary: Peso fuera de rango
+              value:
+                type: https://api.reciclatru.example.com/errors/invalid-weight
+                title: Peso inválido
+                status: 422
+                code: INVALID_WEIGHT
+                detail: El peso de cada ítem debe ser mayor que 0 y como máximo 500 kg.
+                instance: /api/v1/servicing-order/initiation
+                errors:
+                - field: items[1].weightKg
+                  message: Debe ser mayor que 0 y como máximo 500
+  schemas:
+    PartyRole:
+      type: string
+      enum: [NEIGHBOR, RECYCLER]
+    OrderStatus:
+      type: string
+      description: |
+        `PENDING` → `CONFIRMED` → `COLLECTED`. Desde `PENDING` o `CONFIRMED` se puede pasar a `CANCELLED`.
+        `COLLECTED` y `CANCELLED` son estados finales.
+      enum: [PENDING, CONFIRMED, COLLECTED, CANCELLED]
+    AcceptanceStatus:
+      type: string
+      description: Nace `ACCEPTED` y termina en `CHOSEN` o `DISCARDED`.
+      enum: [ACCEPTED, CHOSEN, DISCARDED]
+    AcceptanceLabel:
+      type: string
+      description: Etiqueta que ve el reciclador en «Mis pedidos aceptados». Combina el estado de la aceptación y el del pedido.
+      enum:
+      - AWAITING_CONFIRMATION
+      - CHOSEN
+      - NOT_CHOSEN
+      - CANCELLED_BY_NEIGHBOR
+      - COLLECTED
+    PartyDataManagementInitiateInputModel:
+      type: object
+      required: [email, password, role]
+      properties:
+        email:
+          type: string
+          format: email
+          example: rosa.carranza@example.com
+        password:
+          type: string
+          format: password
+          minLength: 8
+          example: Reciclatru2026
+        role:
+          $ref: '#/components/schemas/PartyRole'
+    PartyDataManagementUpdateInputModel:
+      type: object
+      minProperties: 1
+      properties:
+        fullName:
+          type: string
+          description: Nombre y apellido.
+          minLength: 2
+          maxLength: 80
+          example: Rosa Elena Carranza Vega
+        phone:
+          type: string
+          description: 9 dígitos, empieza con 9.
+          pattern: ^9\d{8}$
+          example: '987654321'
+        reference:
+          type: string
+          maxLength: 150
+          description: Solo vecino. Referencia opcional para ubicar la puerta.
+          example: Casa de dos pisos con portón verde, frente al parque
+    PickupPointUpdateInputModel:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          minimum: -90
+          maximum: 90
+          description: Redondeada a 6 decimales.
+          example: -8.077806
+        longitude:
+          type: number
+          format: double
+          minimum: -180
+          maximum: 180
+          example: -79.122183
+        address:
+          type: string
+          nullable: true
+          description: Dirección aproximada; el vecino puede corregirla o escribirla a mano. El punto del mapa no cambia.
+          example: Av. Víctor Larco 1280, Huanchaco
+        district:
+          type: string
+          nullable: true
+          example: Huanchaco
+    PartyAuthenticationInitiateInputModel:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+          example: rosa.carranza@example.com
+        password:
+          type: string
+          format: password
+          example: Reciclatru2026
+    PartyAuthenticationOutputModel:
+      type: object
+      required: [crReferenceId, accessToken, expiresAt, partyDataManagementInstanceRecord]
+      properties:
+        crReferenceId:
+          type: string
+          format: uuid
+          example: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+        accessToken:
+          type: string
+          example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI3YjFjMmQzZS00ZjUwLTRhNjEtOGI3Mi05M2E0YjVjNmQ3ZTgiLCJyb2xlIjoiTkVJR0hCT1IiLCJpYXQiOjE3OTMwMjY4MDAsImV4cCI6MTc5NTYxODgwMH0.k3J9xV2mQ7pLw0YtB8nZc1RfD5uHsEaGoKiNj4TbXyU
+        tokenType:
+          type: string
+          example: Bearer
+        expiresAt:
+          type: string
+          format: date-time
+          description: Emisión + 30 días.
+          example: '2026-11-25T15:00:00Z'
+        partyDataManagementInstanceRecord:
+          $ref: '#/components/schemas/PartyDataManagementInstanceRecord'
+    PartyDataManagementInstanceRecord:
+      type: object
+      required: [id, email, role, profileComplete, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        email:
+          type: string
+          format: email
+          description: No editable.
+          example: rosa.carranza@example.com
+        role:
+          $ref: '#/components/schemas/PartyRole'
+        fullName:
+          type: string
+          nullable: true
+          example: Rosa Elena Carranza Vega
+        phone:
+          type: string
+          nullable: true
+          example: '987654321'
+        reference:
+          type: string
+          nullable: true
+          example: Casa de dos pisos con portón verde, frente al parque
+        pickupPoint:
+          allOf:
+          - $ref: '#/components/schemas/PickupPoint'
+          nullable: true
+        profileComplete:
+          type: boolean
+          description: Vecino con nombre, celular y ubicación; reciclador con nombre y celular (RN20).
+          example: true
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T14:05:00Z'
+    PartyDataManagementOutputModel:
+      type: object
+      required: [crReferenceId, partyDataManagementInstanceRecord]
+      properties:
+        crReferenceId:
+          type: string
+          format: uuid
+          example: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+        partyDataManagementInstanceRecord:
+          $ref: '#/components/schemas/PartyDataManagementInstanceRecord'
+    PickupPoint:
+      type: object
+      required: [latitude, longitude]
+      properties:
+        latitude:
+          type: number
+          format: double
+          example: -8.077806
+        longitude:
+          type: number
+          format: double
+          example: -79.122183
+        address:
+          type: string
+          nullable: true
+          example: Av. Víctor Larco 1280, Huanchaco
+        district:
+          type: string
+          nullable: true
+          example: Huanchaco
+    OrderItem:
+      type: object
+      required: [description, weightKg]
+      properties:
+        description:
+          type: string
+          minLength: 1
+          maxLength: 100
+          example: Botellas de plástico
+        weightKg:
+          type: number
+          format: double
+          exclusiveMinimum: true
+          minimum: 0
+          maximum: 500
+          multipleOf: 0.1
+          description: Peso estimado en kg, con un decimal como máximo (RN06).
+          example: 2.5
+    ServicingOrderInitiateInputModel:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    ServicingOrderUpdateInputModel:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          minItems: 1
+          maxItems: 10
+          items:
+            $ref: '#/components/schemas/OrderItem'
+    OrderPhoto:
+      type: object
+      required: [id, url]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        url:
+          type: string
+          description: Ruta de `.../photo/{photo-id}/retrieval`.
+          example: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+    Counterpart:
+      type: object
+      description: Contacto de la otra parte. Solo mientras el pedido esté `PENDING` o `CONFIRMED` y exista una aceptación `ACCEPTED` o `CHOSEN`.
+      required: [fullName, phone]
+      properties:
+        fullName:
+          type: string
+          example: Rosa Elena Carranza Vega
+        phone:
+          type: string
+          example: '987654321'
+    PickupDetail:
+      type: object
+      description: Solo para el reciclador elegido, mientras el pedido esté `CONFIRMED` (RN13).
+      required: [latitude, longitude]
+      properties:
+        address:
+          type: string
+          nullable: true
+          description: Calle y distrito. Si es nulo, la app muestra «Sin dirección escrita».
+          example: Av. Víctor Larco 1280, Huanchaco
+        reference:
+          type: string
+          nullable: true
+          example: Casa de dos pisos con portón verde, frente al parque
+        latitude:
+          type: number
+          format: double
+          example: -8.077806
+        longitude:
+          type: number
+          format: double
+          description: Con estas coordenadas la app arma la URI `geo:` de «Cómo llegar».
+          example: -79.122183
+    ServicingOrderInstanceRecord:
+      type: object
+      required: [id, status, items, totalWeightKg, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        totalWeightKg:
+          type: number
+          format: double
+          example: 13.7
+        photos:
+          type: array
+          maxItems: 3
+          items:
+            $ref: '#/components/schemas/OrderPhoto'
+        zone:
+          type: string
+          nullable: true
+          description: Distrito del punto de recojo.
+          example: Huanchaco
+        approximateDistanceKm:
+          type: number
+          format: double
+          nullable: true
+          description: Solo para el reciclador y solo si envió su ubicación. Nunca se guarda.
+          example: 3.4
+        acceptanceCount:
+          type: integer
+          description: Cantidad de recicladores que aceptaron.
+          example: 2
+        alreadyAccepted:
+          type: boolean
+          description: Solo reciclador.
+          example: false
+        acceptanceStatus:
+          allOf:
+          - $ref: '#/components/schemas/AcceptanceStatus'
+          nullable: true
+          description: Estado de la aceptación del reciclador que consulta.
+        chosenRecyclerName:
+          type: string
+          nullable: true
+          description: Solo vecino, con el pedido `CONFIRMED`.
+          example: Jorge Luis Mendoza Ruiz
+        counterpart:
+          allOf:
+          - $ref: '#/components/schemas/Counterpart'
+          nullable: true
+        pickup:
+          allOf:
+          - $ref: '#/components/schemas/PickupDetail'
+          nullable: true
+        availableActions:
+          type: array
+          description: Acciones posibles en ese estado para quien consulta.
+          items:
+            type: string
+            enum: [EDIT, CANCEL, CHOOSE_RECYCLER, MARK_COLLECTED, ACCEPT, GO_PICKUP]
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T14:05:00Z'
+        confirmedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-24T16:30:00Z'
+        collectedAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-26T20:15:00Z'
+        cancelledAt:
+          type: string
+          format: date-time
+          nullable: true
+          example: '2026-10-25T20:00:00Z'
+    ServicingOrderOutputModel:
+      type: object
+      required: [crReferenceId, servicingOrderInstanceRecord]
+      properties:
+        crReferenceId:
+          type: string
+          format: uuid
+          example: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+        servicingOrderInstanceRecord:
+          $ref: '#/components/schemas/ServicingOrderInstanceRecord'
+    ServicingOrderSummary:
+      type: object
+      description: Resumen liviano para listas. Nunca incluye dirección, nombre ni teléfono (salvo el nombre del reciclador elegido para el vecino dueño).
+      required: [id, status, itemCount, totalWeightKg, createdAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        status:
+          $ref: '#/components/schemas/OrderStatus'
+        itemCount:
+          type: integer
+          example: 3
+        totalWeightKg:
+          type: number
+          format: double
+          example: 13.7
+        thumbnailUrl:
+          type: string
+          nullable: true
+          description: Miniatura de la primera foto, si tiene.
+          example: /api/v1/servicing-order/0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36/photo/a3b4c5d6-e7f8-4091-a2b3-c4d5e6f70819/retrieval
+        zone:
+          type: string
+          nullable: true
+          example: Huanchaco
+        approximateDistanceKm:
+          type: number
+          format: double
+          nullable: true
+          example: 3.4
+        acceptanceCount:
+          type: integer
+          nullable: true
+          description: Solo vecino con el pedido `PENDING`.
+          example: 2
+        chosenRecyclerName:
+          type: string
+          nullable: true
+          example: Jorge Luis Mendoza Ruiz
+        alreadyAccepted:
+          type: boolean
+          nullable: true
+          example: false
+        createdAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T14:05:00Z'
+    ServicingOrderListOutputModel:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServicingOrderSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          example: eyJjIjoiMjAyNi0xMC0yM1QxNDoxMDowMFoiLCJpIjoiNWIyZTlkNDEtOGMzNy00ZjA2LWExZDgtN2UzYzZiOWYwYTI0In0
+    ServicingOrderAvailabilityOutputModel:
+      type: object
+      required: [items, sortedBy]
+      properties:
+        sortedBy:
+          type: string
+          enum: [DISTANCE, DATE]
+          description: "`DATE` cuando no se envió ubicación (la app muestra «Activa tu ubicación para ver la distancia»)."
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ServicingOrderSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          example: eyJjIjoiMjAyNi0xMC0yM1QxNDoxMDowMFoiLCJpIjoiNWIyZTlkNDEtOGMzNy00ZjA2LWExZDgtN2UzYzZiOWYwYTI0In0
+    MyAcceptanceSummary:
+      type: object
+      required: [orderId, acceptanceLabel, totalWeightKg, acceptedAt]
+      properties:
+        orderId:
+          type: string
+          format: uuid
+          example: 0f8a3c52-6d1e-4b7a-9e40-2c5d8b1a7f36
+        acceptanceLabel:
+          $ref: '#/components/schemas/AcceptanceLabel'
+        zone:
+          type: string
+          nullable: true
+          example: Huanchaco
+        totalWeightKg:
+          type: number
+          format: double
+          example: 13.7
+        acceptedAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T15:10:00Z'
+    MyAcceptanceListOutputModel:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MyAcceptanceSummary'
+        nextCursor:
+          type: string
+          nullable: true
+          example: eyJjIjoiMjAyNi0xMC0yM1QxNDoxMDowMFoiLCJpIjoiNWIyZTlkNDEtOGMzNy00ZjA2LWExZDgtN2UzYzZiOWYwYTI0In0
+    AcceptanceRecord:
+      type: object
+      required: [id, status, fullName, phone, acceptedAt]
+      properties:
+        id:
+          type: string
+          format: uuid
+          example: 3fa85f64-5717-4562-b3fc-2c963f66afa6
+        status:
+          $ref: '#/components/schemas/AcceptanceStatus'
+        fullName:
+          type: string
+          example: Rosa Elena Carranza Vega
+        phone:
+          type: string
+          example: '987654321'
+        acceptedAt:
+          type: string
+          format: date-time
+          example: '2026-10-26T15:10:00Z'
+    Problem:
+      type: object
+      description: Error según RFC 7807.
+      required: [type, title, status, code]
+      properties:
+        type:
+          type: string
+          example: https://api.reciclatru.example.com/errors/order-not-available
+        title:
+          type: string
+          example: Este pedido ya no está disponible
+        status:
+          type: integer
+          example: 409
+        code:
+          type: string
+          example: ORDER_NOT_AVAILABLE
+        detail:
+          type: string
+        instance:
+          type: string
+        correlationId:
+          type: string
+          description: Valor de `x-correlation-id` de la petición; sirve para rastrear el error en los registros.
+          example: 4f1c9a62-7d3b-4e58-9b0a-2c6e8d1f5a37
+        errors:
+          type: array
+          description: Detalle por campo en errores de validación.
+          items:
+            type: object
+            properties:
+              field:
+                type: string
+              message:
+                type: string
