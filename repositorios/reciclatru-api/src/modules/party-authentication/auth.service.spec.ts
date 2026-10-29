@@ -1,4 +1,9 @@
+<<<<<<< HEAD
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { Logger } from '@nestjs/common';
+=======
 import { beforeEach, describe, expect, it } from '@jest/globals';
+>>>>>>> origin/main
 import { JwtService } from '@nestjs/jwt';
 import { stubOf } from '../../../test/support/stubs.js';
 import { PartyRole } from '../../common/domain/enums.js';
@@ -64,5 +69,43 @@ describe('AuthService', () => {
       (unknownEmail as UnauthorizedAppException).detail,
     );
     expect(hasher.verify).toHaveBeenLastCalledWith('bad', null);
+  });
+
+  describe('logging', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('records a failed login with the reason but never the email', async () => {
+      const warn = jest.spyOn(Logger.prototype, 'warn').mockImplementation(() => undefined);
+      parties.findAccountByEmail.mockResolvedValue(null);
+      hasher.verify.mockResolvedValue(false);
+
+      await service.login('secret@b.com', 'bad').catch(() => undefined);
+
+      expect(warn).toHaveBeenCalledWith({ event: 'auth.login.failed', reason: 'unknown-account' });
+      expect(JSON.stringify(warn.mock.calls)).not.toContain('secret@b.com');
+    });
+
+    it('records a successful login with user id and role', async () => {
+      const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      parties.findAccountByEmail.mockResolvedValue({
+        id: 'u1',
+        email: 'a@b.com',
+        passwordHash: 'h',
+        role: PartyRole.NEIGHBOR,
+        createdAt: new Date(),
+      });
+      parties.retrieve.mockResolvedValue({ id: 'u1' });
+      hasher.verify.mockResolvedValue(true);
+
+      await service.login('a@b.com', 'ok');
+
+      expect(log).toHaveBeenCalledWith({
+        event: 'auth.login.succeeded',
+        userId: 'u1',
+        role: PartyRole.NEIGHBOR,
+      });
+    });
   });
 });

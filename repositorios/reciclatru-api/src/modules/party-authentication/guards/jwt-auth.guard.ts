@@ -6,6 +6,7 @@ import { PartyRole } from '../../../common/domain/enums.js';
 import { UnauthorizedAppException } from '../../../common/errors/app.exception.js';
 import type { JwtPayload } from '../../../common/security/jwt-payload.js';
 import type { RequestContext } from '../../../common/utils/request-context.js';
+import { requestStore } from '../../../observability/request-store.js';
 
 /** Global guard: requires a valid Bearer token unless the route is marked `@Public()`. */
 @Injectable()
@@ -31,6 +32,7 @@ export class JwtAuthGuard implements CanActivate {
       if (!payload.sub || !Object.values(PartyRole).includes(payload.role))
         throw new UnauthorizedAppException();
       request.user = { id: payload.sub, role: payload.role };
+      Object.assign(requestStore.current() ?? {}, { userId: payload.sub, role: payload.role });
       return true;
     } catch {
       throw new UnauthorizedAppException();

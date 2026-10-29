@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { PartyRole } from '../../common/domain/enums.js';
 import {
   BadRequestAppException,
@@ -18,6 +18,8 @@ import type { AccountRow, Contact, PartyRecord, ProfileRow } from './party.types
 /** Accounts, profiles and the contact data shared between counterparts. */
 @Injectable()
 export class PartyService {
+  private readonly logger = new Logger(PartyService.name);
+
   constructor(
     private readonly parties: PartyRepository,
     private readonly locations: LocationService,
@@ -30,6 +32,7 @@ export class PartyService {
     const passwordHash = await this.hasher.hash(input.password);
     try {
       const account = await this.parties.insertAccount(input.email, passwordHash, input.role);
+      this.logger.log({ event: 'user.registered', userId: account.id, role: account.role });
       return this.toRecord(account, null, null);
     } catch (error) {
       if (isUniqueViolation(error, 'uq_app_user_email'))
@@ -82,6 +85,7 @@ export class PartyService {
       phoneEncrypted: phoneEncrypted as string,
       reference: input.reference === undefined ? (current?.reference ?? null) : input.reference || null,
     });
+    this.logger.log({ event: 'profile.updated', userId, changed: this.changedFields(input) });
     return this.retrieve(userId);
   }
 
@@ -93,6 +97,7 @@ export class PartyService {
       address: input.address ?? null,
       district: input.district ?? null,
     });
+    this.logger.log({ event: 'location.updated', userId });
     return this.retrieve(userId);
   }
 
@@ -122,6 +127,10 @@ export class PartyService {
   async isProfileComplete(userId: string): Promise<boolean> {
     const record = await this.retrieve(userId);
     return record.profileComplete;
+  }
+
+  private changedFields(input: UpdateProfileDto): string[] {
+    return (['fullName', 'phone', 'reference'] as const).filter((field) => input[field] !== undefined);
   }
 
   private assertRequired(fullName: string | undefined, phoneEncrypted: string | undefined): void {

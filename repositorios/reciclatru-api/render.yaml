@@ -22,10 +22,24 @@ services:
         value: us-east-2
       - key: S3_BUCKET
         value: photos
-      - key: S3_FORCE_PATH_STYLE
-        value: "false"
+      - key: S3_FORCE_PATH_STYLE   # Neon: el certificado cubre un solo nivel de subdominio, hay que usar estilo path
+        value: "true"
       - key: JWT_SECRET
         generateValue: true
+      - key: LOG_FORMAT
+        value: json
+      - key: OTEL_ENABLED       # pasar a true cuando existan OTEL_EXPORTER_OTLP_ENDPOINT y OTEL_EXPORTER_OTLP_HEADERS
+        value: "false"
+      - key: OTEL_SERVICE_NAME
+        value: reciclatru-api
+      - key: OTEL_EXPORTER_OTLP_PROTOCOL
+        value: http/protobuf
+      - key: OTEL_RESOURCE_ATTRIBUTES
+        value: deployment.environment=production
+      - key: OTEL_EXPORTER_OTLP_ENDPOINT   # Grafana Cloud: https://otlp-gateway-<region>.grafana.net/otlp
+        sync: false
+      - key: OTEL_EXPORTER_OTLP_HEADERS    # Authorization=Basic <token>; secreto
+        sync: false
       - key: DATABASE_URL        # URL con pooler de Neon
         sync: false
       - key: PHONE_ENCRYPTION_KEY

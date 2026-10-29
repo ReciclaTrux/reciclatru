@@ -75,6 +75,7 @@ export class OrderPhotoService {
       await this.removeQuietly(key);
       throw error;
     }
+    this.logger.log({ event: 'order.photo.uploaded', orderId, photoId, sizeBytes: file.size });
     return { id: photoId, url: this.assembler.photoUrl(orderId, photoId) };
   }
 
@@ -94,6 +95,7 @@ export class OrderPhotoService {
     if (!photo) throw new NotFoundAppException();
     await this.photos.delete(photo.id);
     await this.removeQuietly(photo.fileName);
+    this.logger.log({ event: 'order.photo.removed', orderId, photoId });
   }
 
   private async assertEditable(user: AuthenticatedUser, orderId: string): Promise<void> {
@@ -118,7 +120,10 @@ export class OrderPhotoService {
     try {
       await this.storage.remove(key);
     } catch (error) {
-      this.logger.warn(`Could not remove object ${key}: ${(error as Error).message}`);
+      this.logger.warn({
+        event: 'photo.cleanup-failed',
+        message: `Could not remove object ${key}: ${(error as Error).message}`,
+      });
     }
   }
 }
