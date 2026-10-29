@@ -58,10 +58,15 @@ Generar secretos: `openssl rand -base64 48` (JWT) y `openssl rand -base64 32` (c
 | `BCRYPT_ROUNDS` | no | `10` | Costo de bcrypt |
 | `PHONE_ENCRYPTION_KEY` | sí | | Clave AES-256 de 32 bytes en base64 |
 | `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY` | sí | | Bucket privado |
-| `S3_FORCE_PATH_STYLE` | no | `false` | Probar `true` si hay errores de host o firma |
+| `S3_FORCE_PATH_STYLE` | no | `false` | **Poner `true` con Neon**: su certificado no cubre `bucket.host` (error `ERR_TLS_CERT_ALTNAME_INVALID`) |
 | `PHOTO_URL_TTL_SECONDS` | no | `300` | Vida de la URL firmada |
 | `PHOTO_MAX_BYTES` | no | `2097152` | Tamaño máximo de una foto |
 | `ERROR_TYPE_BASE_URL` | no | | Base del campo `type` de los errores |
+| `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn` o `error` |
+| `LOG_FORMAT` | no | `json` | `json` (producción) o `text` (local) |
+| `OTEL_ENABLED` | no | `false` | `true` envía logs y trazas por OTLP |
+| `OTEL_SERVICE_NAME` | no | `reciclatru-api` | Nombre del servicio en Grafana |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`, `OTEL_EXPORTER_OTLP_PROTOCOL`, `OTEL_EXPORTER_OTLP_HEADERS` | si `OTEL_ENABLED=true` | | Estándar OpenTelemetry; los entrega Grafana Cloud |
 
 Si falta una variable obligatoria, la API no arranca y lista todas las que faltan.
 
@@ -88,6 +93,16 @@ Si falta una variable obligatoria, la API no arranca y lista todas las que falta
 
 **Paginación.** Cursor opaco (base64url) por keyset: estable aunque lleguen pedidos nuevos mientras se pagina. `limit` de 1 a 50 (20 por defecto). Un cursor alterado responde 400.
 
+**Logs y observabilidad.** Cada línea es un JSON con `timestamp`, `level`, `context`, `message`, `correlationId`, `userId` y `role` (cuando hay sesión), más `traceId` y `spanId` si OpenTelemetry está activo. Se escribe:
+
+- Una línea `http.request` por petición, al terminar: método, **plantilla** de la ruta (`/api/v1/servicing-order/:orderId/retrieval`, nunca la URL real, así no se filtran ids ni cursores), status, `durationMs` y `errorCode`. Incluye las rechazadas (401, 403, 404). El nivel sale del resultado: `info` 2xx/3xx, `warn` 4xx, `error` 5xx. `/health` va en `debug`.
+- Eventos de negocio con el campo `event`: `user.registered`, `auth.login.succeeded`, `auth.login.failed`, `profile.updated`, `location.updated`, `order.created`, `order.updated`, `order.cancelled`, `order.accepted`, `order.confirmed`, `order.collected`, `order.photo.uploaded`, `order.photo.removed`.
+- Nunca se registran contraseñas, tokens, celulares, correos, coordenadas ni direcciones: el logger enmascara las claves sensibles (`password`, `token`, `phone`, `email`...) y los eventos solo llevan ids y conteos.
+
+Para agregar un evento: `this.logger.log({ event: 'order.algo', orderId })` con el `Logger` de Nest; el `correlationId` se añade solo.
+
+**OpenTelemetry (Grafana Cloud).** Con `OTEL_ENABLED=true`, `src/instrumentation.ts` (cargado con `node --import` en `npm run start:prod`) envía por OTLP/HTTP las trazas (HTTP, Express y cada consulta SQL de `pg`, sin `/health`) y los mismos logs. Cada traza lleva el atributo `app.correlation_id`. Si el token o el endpoint son incorrectos, el aviso aparece en la consola del servicio. Pasos en Grafana Cloud: *Portal → tu stack → Details → OpenTelemetry → Configure* y copiar las tres variables `OTEL_EXPORTER_OTLP_*`. Probar en local: `npm run build`, poner las variables en `.env` y `npm run start:prod`; luego, en Grafana, *Explore → Loki* (`{service_name="reciclatru-api"}`) y *Explore → Tempo*.
+
 **`/health`** está bajo el prefijo: `GET /api/v1/health` (público, comprueba la base de datos y responde 503 si no responde).
 
 ## Scripts
@@ -95,7 +110,7 @@ Si falta una variable obligatoria, la API no arranca y lista todas las que falta
 | Comando | Qué hace |
 |---|---|
 | `npm run start:dev` | Desarrollo con recarga |
-| `npm run build` / `npm run start:prod` | Compila y ejecuta `dist/main.js` |
+| `npm run build` / `npm run start:prod` | Compila y ejecuta `dist/main.js` con OpenTelemetry cargado (lee `.env`) |
 | `npm test` | Pruebas unitarias (Jest, sin base de datos) |
 | `npm run test:integration` | Flujo completo contra PostgreSQL (`TEST_DATABASE_URL`, por defecto `postgres://postgres@localhost:5433/reciclatru_test`) con un bucket simulado |
 | `npm run test:cov` | Cobertura |

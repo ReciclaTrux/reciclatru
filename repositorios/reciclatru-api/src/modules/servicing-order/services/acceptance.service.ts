@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import {
   ConflictAppException,
   NotFoundAppException,
@@ -31,6 +31,8 @@ export interface AcceptanceView {
 /** Recycler acceptances (HU-12) and the neighbor's view of them (HU-13). */
 @Injectable()
 export class AcceptanceService {
+  private readonly logger = new Logger(AcceptanceService.name);
+
   constructor(
     private readonly access: OrderAccessService,
     private readonly orders: OrderRepository,
@@ -54,6 +56,7 @@ export class AcceptanceService {
       }
       if (order.status !== OrderStatus.PENDING) throw new ConflictAppException(ErrorCode.ORDER_NOT_AVAILABLE);
       created = await this.acceptances.insert(orderId, user.id);
+      if (created) this.logger.log({ event: 'order.accepted', orderId });
     }
     const record = await this.query.present(user, await this.access.load(user, orderId), point);
     return { created, record };

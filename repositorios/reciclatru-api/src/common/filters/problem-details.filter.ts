@@ -22,10 +22,16 @@ export class ProblemDetailsFilter implements ExceptionFilter {
 
     if (problem.status >= HttpStatus.INTERNAL_SERVER_ERROR) {
       this.logger.error(
-        `[${request.correlationId}] ${request.method} ${problem.instance} -> ${problem.status}`,
+        {
+          event: 'http.unhandled-error',
+          message: (exception as Error)?.message ?? 'Unhandled error',
+          correlationId: request.correlationId,
+          status: problem.status,
+        },
         (exception as Error)?.stack,
       );
     }
+    response.locals.errorCode = problem.code;
     response.status(problem.status).type('application/problem+json').json(problem);
   }
 }

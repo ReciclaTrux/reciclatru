@@ -1,4 +1,5 @@
-import { beforeEach, describe, expect, it } from '@jest/globals';
+import { afterEach, beforeEach, describe, expect, it, jest } from '@jest/globals';
+import { Logger } from '@nestjs/common';
 import { stubOf } from '../../../../test/support/stubs.js';
 import { OrderStatus, PartyRole } from '../../../common/domain/enums.js';
 import {
@@ -158,6 +159,44 @@ describe('OrderCommandService', () => {
         ForbiddenAppException,
       );
       expect(acceptances.choose).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('business events', () => {
+    afterEach(() => {
+      jest.restoreAllMocks();
+    });
+
+    it('logs order.created without personal data', async () => {
+      const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      parties.isProfileComplete.mockResolvedValue(true);
+      orders.insert.mockResolvedValue('o1');
+
+      await service.create(neighbor, items);
+
+      expect(log).toHaveBeenCalledWith({ event: 'order.created', orderId: 'o1', itemCount: 1 });
+    });
+
+    it('logs order.cancelled with the previous status', async () => {
+      const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      access.loadOwned.mockResolvedValue(order(OrderStatus.CONFIRMED));
+
+      await service.cancel(neighbor, 'o1');
+
+      expect(log).toHaveBeenCalledWith({
+        event: 'order.cancelled',
+        orderId: 'o1',
+        previousStatus: OrderStatus.CONFIRMED,
+      });
+    });
+
+    it('does not log a cancellation that was rejected', async () => {
+      const log = jest.spyOn(Logger.prototype, 'log').mockImplementation(() => undefined);
+      access.loadOwned.mockResolvedValue(order(OrderStatus.COLLECTED));
+
+      await service.cancel(neighbor, 'o1').catch(() => undefined);
+
+      expect(log).not.toHaveBeenCalled();
     });
   });
 });
