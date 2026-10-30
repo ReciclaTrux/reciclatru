@@ -20,9 +20,8 @@ android {
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // URL base provisional: el contrato OpenAPI todavía no existe. Con el emulador,
-        // 10.0.2.2 apunta a la máquina de desarrollo. Se cambia acá y en ningún otro lado.
-        buildConfigField("String", "API_BASE_URL", "\"http://10.0.2.2:3000/api/v1/\"")
+        // URL base: la API publicada en Render. Se cambia acá y en ningún otro lado.
+        buildConfigField("String", "API_BASE_URL", "\"https://reciclatru.onrender.com/api/v1/\"")
     }
 
     buildTypes {
