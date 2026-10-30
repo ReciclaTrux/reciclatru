@@ -43,6 +43,9 @@ export class EnvironmentVariables {
   @IsInt() @Min(30) @Max(3600) PHOTO_URL_TTL_SECONDS: number = 300;
   @IsInt() @Min(1024) PHOTO_MAX_BYTES: number = 2 * 1024 * 1024;
 
+  /** Comma-separated browser origins allowed to call the API; empty keeps CORS off. `*` may appear inside an origin (http://localhost:*). */
+  @IsOptional() @IsString() CORS_ORIGINS?: string;
+
   @IsUrl({ require_tld: false }) ERROR_TYPE_BASE_URL: string = 'https://api.reciclatru.example.com/errors';
 }
 
