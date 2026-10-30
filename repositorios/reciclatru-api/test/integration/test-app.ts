@@ -27,7 +27,7 @@ export interface TestApp {
 }
 
 /** Boots the real application (same pipeline as production) with a fake bucket. */
-export async function createTestApp(): Promise<TestApp> {
+export async function createTestApp(extraEnv: Record<string, string> = {}): Promise<TestApp> {
   Object.assign(process.env, {
     NODE_ENV: 'test',
     DATABASE_URL: process.env.TEST_DATABASE_URL ?? 'postgres://postgres@localhost:5433/reciclatru_test',
@@ -39,6 +39,7 @@ export async function createTestApp(): Promise<TestApp> {
     S3_BUCKET: 'photos',
     S3_ACCESS_KEY_ID: 'test',
     S3_SECRET_ACCESS_KEY: 'test',
+    ...extraEnv,
   });
   const { AppModule } = await import('../../src/app.module.js');
   const { configureApp } = await import('../../src/app.setup.js');

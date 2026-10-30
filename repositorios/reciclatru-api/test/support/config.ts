@@ -9,6 +9,7 @@ export function testConfig(overrides: Partial<TestConfig> = {}): TestConfig {
     env: 'test',
     port: 3000,
     version: '1.0.0',
+    corsOrigins: [],
     errorTypeBaseUrl: 'https://api.test/errors',
     database: { url: 'postgres://localhost/test', ssl: false, poolMax: 2 },
     security: {
