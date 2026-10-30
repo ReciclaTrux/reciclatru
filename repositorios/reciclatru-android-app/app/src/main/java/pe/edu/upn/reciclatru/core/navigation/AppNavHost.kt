@@ -8,16 +8,22 @@ import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import pe.edu.upn.reciclatru.core.health.ui.HealthUiState
+import pe.edu.upn.reciclatru.core.health.ui.HealthViewModel
 import pe.edu.upn.reciclatru.feature.profile.ui.LocationScreen
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSpacing
@@ -41,7 +47,11 @@ fun AppNavHost(
         modifier = modifier,
     ) {
         composable(AppRoutes.Home) {
+            val healthViewModel: HealthViewModel = hiltViewModel()
+            val healthState by healthViewModel.uiState.collectAsStateWithLifecycle()
             HomePlaceholder(
+                healthState = healthState,
+                onRetryHealth = healthViewModel::onRetry,
                 onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
             )
         }
@@ -59,7 +69,11 @@ fun AppNavHost(
  * abrir la única HU implementada (HU-04) mientras el equipo hace el registro y el ingreso.
  */
 @Composable
-private fun HomePlaceholder(onOpenPickupLocation: () -> Unit) {
+private fun HomePlaceholder(
+    healthState: HealthUiState,
+    onRetryHealth: () -> Unit,
+    onOpenPickupLocation: () -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -78,6 +92,7 @@ private fun HomePlaceholder(onOpenPickupLocation: () -> Unit) {
             style = MaterialTheme.typography.bodyLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        BackendHealthStatus(state = healthState, onRetry = onRetryHealth)
         RtInlineAlert(
             tone = RtInlineAlertTone.Info,
             message = "Esta es la base de la app. El registro y el ingreso llegan con " +
@@ -92,6 +107,25 @@ private fun HomePlaceholder(onOpenPickupLocation: () -> Unit) {
     }
 }
 
+@Composable
+private fun BackendHealthStatus(state: HealthUiState, onRetry: () -> Unit) {
+    when {
+        state.checking -> RtSpinner(modifier = Modifier.testTag("spinner_conexion_backend"))
+        state.connected -> RtInlineAlert(
+            tone = RtInlineAlertTone.Success,
+            message = "Conectado",
+            modifier = Modifier.testTag("alert_conexion_backend"),
+        )
+        else -> RtInlineAlert(
+            tone = RtInlineAlertTone.Error,
+            message = state.error.orEmpty(),
+            actionLabel = "Reintentar",
+            onAction = onRetry,
+            modifier = Modifier.testTag("alert_conexion_backend"),
+        )
+    }
+}
+
 @Preview(name = "Inicio", showBackground = true, heightDp = 700)
 @Composable
 private fun HomePlaceholderPreview() {
@@ -100,7 +134,11 @@ private fun HomePlaceholderPreview() {
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
         ) {
-            HomePlaceholder(onOpenPickupLocation = {})
+            HomePlaceholder(
+                healthState = HealthUiState(checking = false, connected = true),
+                onRetryHealth = {},
+                onOpenPickupLocation = {},
+            )
         }
     }
 }
