@@ -46,8 +46,8 @@ Estado de cada componente y tabla **Componentes por HU**:
 
 ## Configuración
 
-- **API**: `BuildConfig.API_BASE_URL` en `app/build.gradle.kts` (por ahora
-  `http://10.0.2.2:3000/api/v1/`, el backend local visto desde el emulador). Ningún
+- **API**: `BuildConfig.API_BASE_URL` en `app/build.gradle.kts`
+  (`https://reciclatru.onrender.com/api/v1/`, la API publicada en Render). Ningún
   repositorio repite la URL.
 - **Sesión**: `core/session/SessionStore` guarda el token en DataStore y
   `AuthInterceptor` lo agrega a cada petición. HU-01/HU-02 son las que crean y borran la
@@ -58,6 +58,35 @@ Estado de cada componente y tabla **Componentes por HU**:
   deje de necesitarlo.
 - **Debug**: `app/src/debug/AndroidManifest.xml` permite HTTP sin TLS solo para el
   backend local. En release no.
+
+## Conexión con el backend (RT-50)
+
+Al abrir la app, la pantalla de inicio llama a `GET /api/v1/health` y muestra
+**"Conectado"** si el backend responde `{"status":"UP"}`. Si falla, muestra el error con
+**Reintentar**. El código vive en `core/health/` (`data`, `domain` y `ui`).
+
+### Red y permisos
+
+- **Permiso de internet**: `android.permission.INTERNET` (y `ACCESS_NETWORK_STATE`) en
+  `app/src/main/AndroidManifest.xml`.
+- **URL base**: `BuildConfig.API_BASE_URL` en `app/build.gradle.kts` apunta a la API
+  publicada: `https://reciclatru.onrender.com/api/v1/`. No hace falta levantar la API en
+  local, y funciona igual en emulador y en dispositivo físico.
+- **HTTPS**: la API publicada usa TLS, así que no se necesita permitir HTTP sin cifrar.
+- **Backend local (opcional)**: para apuntar a una API en la PC, la URL es
+  `http://10.0.2.2:3000/api/v1/` (en el emulador, `localhost` es el propio emulador y
+  `10.0.2.2` es la PC). Como es HTTP, solo funciona en debug, donde
+  `app/src/debug/AndroidManifest.xml` activa `usesCleartextTraffic`.
+- **Render en plan gratuito**: tras un rato sin uso el servidor se duerme y la primera
+  petición puede tardar o vencer el tiempo de espera; en ese caso, usar Reintentar.
+
+### Cómo probarlo
+
+1. Abrir `https://reciclatru.onrender.com/api/v1/health` en el navegador: debe
+   responder `{"status":"UP",...}`.
+2. Ejecutar la app en el emulador: el inicio debe mostrar "Conectado".
+3. Con el emulador en modo avión, debe mostrar "No tienes conexión..." y el botón
+   Reintentar.
 
 ## HU-04 como referencia
 
