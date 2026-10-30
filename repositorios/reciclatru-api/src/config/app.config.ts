@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { registerAs } from '@nestjs/config';
+import { parseCorsOrigins } from '../common/http/cors.js';
 
 const SECONDS_PER_DAY = 86_400;
 
@@ -17,6 +18,7 @@ export const appConfig = registerAs('app', () => ({
   env: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 3000),
   version: readVersion(),
+  corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
   errorTypeBaseUrl: process.env.ERROR_TYPE_BASE_URL ?? 'https://api.reciclatru.example.com/errors',
   database: {
     url: process.env.DATABASE_URL as string,
