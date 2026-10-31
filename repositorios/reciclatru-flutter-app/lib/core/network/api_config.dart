@@ -7,7 +7,7 @@
 /// tu PC), `http://localhost:3000` (Edge/Windows) o la URL desplegada.
 const String apiBaseUrl = String.fromEnvironment(
   'API_BASE_URL',
-  defaultValue: 'http://localhost:3000',
+  defaultValue: 'https://reciclatru.onrender.com/api/v1',
 );
 
 /// Ruta del endpoint de salud de la API.
