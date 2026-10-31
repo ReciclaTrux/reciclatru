@@ -1,15 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reciclatru/core/design_system/atoms/rt_avatar.dart';
 import 'package:reciclatru/core/design_system/atoms/rt_button.dart';
 import 'package:reciclatru/core/design_system/atoms/rt_text_field.dart';
 import 'package:reciclatru/core/design_system/theme/rt_colors.dart';
 import 'package:reciclatru/core/design_system/theme/rt_theme.dart';
+import 'package:reciclatru/core/network/health_api.dart';
 import 'package:reciclatru/main.dart';
 
 void main() {
   testWidgets('la app arranca con el tema del sistema', (tester) async {
-    await tester.pumpWidget(const ReciclaTruApp());
+    await tester.pumpWidget(
+      ProviderScope(
+        overrides: [healthApiProvider.overrideWithValue(_OkHealthApi())],
+        child: const ReciclaTruApp(),
+      ),
+    );
 
     expect(find.text('ReciclaTru'), findsOneWidget);
 
@@ -57,6 +64,15 @@ void main() {
 
     expect(find.text('9/150'), findsOneWidget);
   });
+}
+
+class _OkHealthApi implements HealthApi {
+  @override
+  Future<HealthStatus> check() async => const HealthStatus(
+    statusCode: 200,
+    elapsed: Duration(milliseconds: 100),
+    status: 'UP',
+  );
 }
 
 Widget _wrap(Widget child) {
