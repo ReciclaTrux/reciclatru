@@ -1,4 +1,5 @@
 import { Controller, Get, Inject } from '@nestjs/common';
+import { SkipThrottle } from '@nestjs/throttler';
 import { type ConfigType } from '@nestjs/config';
 import { appConfig } from '../config/app.config.js';
 import { Public } from '../common/decorators/auth.decorators.js';
@@ -10,7 +11,8 @@ export interface HealthResponse {
   version: string;
 }
 
-/** Liveness and database readiness probe. */
+/** Liveness and database readiness probe. Not rate limited: Render calls it all the time. */
+@SkipThrottle()
 @Controller('health')
 export class HealthController {
   constructor(

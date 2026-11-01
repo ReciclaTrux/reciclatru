@@ -62,6 +62,12 @@ Generar secretos: `openssl rand -base64 48` (JWT) y `openssl rand -base64 32` (c
 | `PHOTO_URL_TTL_SECONDS` | no | `300` | Vida de la URL firmada |
 | `PHOTO_MAX_BYTES` | no | `2097152` | Tamaño máximo de una foto |
 | `ERROR_TYPE_BASE_URL` | no | | Base del campo `type` de los errores |
+| `TRUST_PROXY_HOPS` | no | `1` | Proxies delante de la API; decide qué IP cuenta el límite (si todos los usuarios parecen una sola IP, súbelo a 2) |
+| `RATE_LIMIT_ENABLED` | no | `true` | Activa el límite de solicitudes por cliente |
+| `RATE_LIMIT_WINDOW_SECONDS` | no | `60` | Ventana de conteo, en segundos |
+| `RATE_LIMIT_MAX` | no | `100` | Solicitudes por ventana y por cliente, todas las rutas juntas |
+| `RATE_LIMIT_AUTH_MAX` | no | `10` | Solicitudes por ventana en login y registro, contadas por separado |
+| `JSON_BODY_LIMIT` | no | `50kb` | Tamaño máximo de un cuerpo JSON (`b`, `kb` o `mb`) |
 | `CORS_ORIGINS` | no | vacío | Orígenes de navegador permitidos, separados por coma. Vacío = CORS apagado |
 | `LOG_LEVEL` | no | `info` | `debug`, `info`, `warn` o `error` |
 | `LOG_FORMAT` | no | `json` | `json` (producción) o `text` (local) |
@@ -93,6 +99,14 @@ Si falta una variable obligatoria, la API no arranca y lista todas las que falta
 | 500 | Error interno (sin detalles hacia fuera) | `INTERNAL_ERROR` |
 
 **Paginación.** Cursor opaco (base64url) por keyset: estable aunque lleguen pedidos nuevos mientras se pagina. `limit` de 1 a 50 (20 por defecto). Un cursor alterado responde 400.
+
+**Límites y cabeceras de seguridad.**
+
+- **Rate limit** (`@nestjs/throttler`, en memoria; con varias instancias haría falta un almacén compartido). Se aplica antes de la autenticación, así que también corta ráfagas sin token. Cuenta por IP real del cliente (`trust proxy` detrás de Render). Login y registro tienen un límite propio y más bajo (`RATE_LIMIT_AUTH_MAX`), contado por ruta; el resto comparte `RATE_LIMIT_MAX`. `/health` queda fuera. Al superarlo: `429 TOO_MANY_REQUESTS` en `problem+json` con `Retry-After`. Una ruta nueva sensible se marca con `@StrictRateLimit()`.
+- **`helmet`** añade las cabeceras de seguridad (`X-Content-Type-Options`, `Strict-Transport-Security`...) y no se envía `X-Powered-By`.
+- **Cuerpo JSON** limitado a `JSON_BODY_LIMIT`; por encima responde `413 PAYLOAD_TOO_LARGE`. Las fotos tienen su propio límite (`PHOTO_MAX_BYTES`).
+- **Errores genéricos:** los 500 salen siempre como `INTERNAL_ERROR` sin detalle; la traza queda solo en el log, con el `correlationId`.
+- **Sin Swagger** en la API. Si se añade, debe publicarse solo cuando `NODE_ENV` no sea `production`.
 
 **CORS.** Solo importa para clientes que corren en un navegador (Flutter web, Angular); la app móvil nativa no lo usa. Con `CORS_ORIGINS` vacío no se envía ningún header CORS y el navegador bloquea las llamadas entre orígenes. Se configura con una lista explícita, p. ej. `CORS_ORIGINS=https://app.reciclatru.com,http://localhost:*` (el `*` solo se permite dentro de un origen, como el puerto; un `*` solo impide arrancar). La API permite `Authorization`, `Content-Type` y `x-correlation-id`, y expone `x-correlation-id` al navegador. Con Flutter web local: `flutter run -d chrome --web-port=5000` y `CORS_ORIGINS=http://localhost:5000`.
 

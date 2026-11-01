@@ -26,6 +26,16 @@ services:
         value: "true"
       - key: JWT_SECRET
         generateValue: true
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
+      - key: RATE_LIMIT_WINDOW_SECONDS
+        value: "60"
+      - key: RATE_LIMIT_MAX
+        value: "100"
+      - key: RATE_LIMIT_AUTH_MAX
+        value: "10"
+      - key: JSON_BODY_LIMIT
+        value: 50kb
       - key: CORS_ORIGINS        # orígenes web permitidos, separados por coma; vacío = apagado
         sync: false
       - key: LOG_FORMAT
