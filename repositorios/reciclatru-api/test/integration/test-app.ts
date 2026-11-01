@@ -39,6 +39,7 @@ export async function createTestApp(extraEnv: Record<string, string> = {}): Prom
     S3_BUCKET: 'photos',
     S3_ACCESS_KEY_ID: 'test',
     S3_SECRET_ACCESS_KEY: 'test',
+    RATE_LIMIT_ENABLED: 'false',
     ...extraEnv,
   });
   const { AppModule } = await import('../../src/app.module.js');

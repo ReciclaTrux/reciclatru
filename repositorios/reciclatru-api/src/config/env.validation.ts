@@ -7,6 +7,7 @@ import {
   IsOptional,
   IsString,
   IsUrl,
+  Matches,
   Max,
   Min,
   MinLength,
@@ -42,6 +43,15 @@ export class EnvironmentVariables {
 
   @IsInt() @Min(30) @Max(3600) PHOTO_URL_TTL_SECONDS: number = 300;
   @IsInt() @Min(1024) PHOTO_MAX_BYTES: number = 2 * 1024 * 1024;
+
+  /** Proxies between the client and the API (Render: 1). Decides which IP the rate limit counts. */
+  @IsInt() @Min(0) @Max(5) TRUST_PROXY_HOPS: number = 1;
+  @Transform(toBoolean) @IsBoolean() RATE_LIMIT_ENABLED: boolean = true;
+  @IsInt() @Min(1) @Max(3600) RATE_LIMIT_WINDOW_SECONDS: number = 60;
+  @IsInt() @Min(1) RATE_LIMIT_MAX: number = 100;
+  @IsInt() @Min(1) RATE_LIMIT_AUTH_MAX: number = 10;
+  @Matches(/^\d+(b|kb|mb)$/i, { message: 'JSON_BODY_LIMIT must look like 50kb, 1mb or 2048b' })
+  JSON_BODY_LIMIT: string = '50kb';
 
   /** Comma-separated browser origins allowed to call the API; empty keeps CORS off. `*` may appear inside an origin (http://localhost:*). */
   @IsOptional() @IsString() CORS_ORIGINS?: string;

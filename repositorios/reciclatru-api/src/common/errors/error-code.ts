@@ -19,6 +19,7 @@ export enum ErrorCode {
   INVALID_ITEMS = 'INVALID_ITEMS',
   INVALID_WEIGHT = 'INVALID_WEIGHT',
   PAYLOAD_TOO_LARGE = 'PAYLOAD_TOO_LARGE',
+  TOO_MANY_REQUESTS = 'TOO_MANY_REQUESTS',
   HTTP_ERROR = 'HTTP_ERROR',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
 }
@@ -45,6 +46,7 @@ export const ERROR_TITLES: Record<ErrorCode, string> = {
   [ErrorCode.INVALID_ITEMS]: 'Cantidad de ítems inválida',
   [ErrorCode.INVALID_WEIGHT]: 'Peso inválido',
   [ErrorCode.PAYLOAD_TOO_LARGE]: 'La solicitud es demasiado grande',
+  [ErrorCode.TOO_MANY_REQUESTS]: 'Demasiadas solicitudes',
   [ErrorCode.HTTP_ERROR]: 'Error en la solicitud',
   [ErrorCode.INTERNAL_ERROR]: 'Error interno del servidor',
 };

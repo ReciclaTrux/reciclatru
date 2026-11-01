@@ -83,6 +83,17 @@ describe('ProblemDetailsFactory', () => {
     });
   });
 
+  it('maps the rate limit to 429 with a friendly detail and no framework text', () => {
+    const problem = factory.create(
+      new HttpException('ThrottlerException: Too Many Requests', 429),
+      '/x',
+      'c1',
+    );
+    expect(problem).toMatchObject({ status: 429, code: ErrorCode.TOO_MANY_REQUESTS, correlationId: 'c1' });
+    expect(problem.detail).toMatch(/límite de solicitudes/);
+    expect(JSON.stringify(problem)).not.toContain('Throttler');
+  });
+
   it('hides unknown database errors behind a generic 500', () => {
     const problem = factory.create(dbError('XX000', 'relation "secret_table" does not exist'), '/x');
     expect(problem).toMatchObject({ status: 500, code: 'INTERNAL_ERROR' });

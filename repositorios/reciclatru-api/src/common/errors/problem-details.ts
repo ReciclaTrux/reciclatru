@@ -27,7 +27,10 @@ const STATUS_CODES: Partial<Record<number, ErrorCode>> = {
   [HttpStatus.FORBIDDEN]: ErrorCode.FORBIDDEN_ROLE,
   [HttpStatus.NOT_FOUND]: ErrorCode.NOT_FOUND,
   [HttpStatus.PAYLOAD_TOO_LARGE]: ErrorCode.PAYLOAD_TOO_LARGE,
+  [HttpStatus.TOO_MANY_REQUESTS]: ErrorCode.TOO_MANY_REQUESTS,
 };
+
+const RATE_LIMIT_DETAIL = 'Superaste el límite de solicitudes. Intenta de nuevo en unos segundos.';
 
 interface RawHttpError {
   status?: number;
@@ -107,7 +110,8 @@ export class ProblemDetailsFactory {
   }
 
   private safeDetail(status: number, message?: string): string | undefined {
-    return status === HttpStatus.NOT_FOUND ? undefined : message;
+    if (status === HttpStatus.NOT_FOUND) return undefined;
+    return status === HttpStatus.TOO_MANY_REQUESTS ? RATE_LIMIT_DETAIL : message;
   }
 
   private internal() {

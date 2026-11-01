@@ -6,6 +6,7 @@ import { ProblemDetailsFilter } from './common/filters/problem-details.filter.js
 import { ProblemDetailsFactory } from './common/errors/problem-details.js';
 import { appConfig } from './config/app.config.js';
 import { validateEnv } from './config/env.validation.js';
+import { RateLimitModule } from './common/rate-limit/rate-limit.module.js';
 import { DatabaseModule } from './database/database.module.js';
 import { HealthModule } from './health/health.module.js';
 import { LocationModule } from './modules/location-data-management/location.module.js';
@@ -17,6 +18,7 @@ import { RequestLogMiddleware } from './observability/request-log.middleware.js'
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true, load: [appConfig], validate: validateEnv }),
+    RateLimitModule,
     DatabaseModule,
     HealthModule,
     LocationModule,

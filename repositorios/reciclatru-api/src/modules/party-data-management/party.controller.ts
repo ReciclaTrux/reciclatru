@@ -1,5 +1,6 @@
 import { Body, Controller, Get, Param, Post, Put } from '@nestjs/common';
 import { Public, CurrentUser, Roles } from '../../common/decorators/auth.decorators.js';
+import { StrictRateLimit } from '../../common/rate-limit/rate-limit.js';
 import { PartyRole } from '../../common/domain/enums.js';
 import type { AuthenticatedUser } from '../../common/utils/request-context.js';
 import { resolveSelfId } from '../../common/utils/self-reference.js';
@@ -23,6 +24,7 @@ export class PartyController {
   constructor(private readonly parties: PartyService) {}
 
   @Public()
+  @StrictRateLimit()
   @Post('party-data-management/initiation')
   async initiate(@Body() body: RegisterPartyDto): Promise<PartyOutput> {
     return toOutput(await this.parties.register(body));

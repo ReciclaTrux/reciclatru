@@ -26,6 +26,11 @@ info:
     - Los Service Domains son la correspondencia más cercana del landscape BIAN (bancario); no existe un dominio oficial de reciclaje. Cada operación declara su equivalencia en `x-bian`.
     - `/health` queda fuera de BIAN.
 
+    **Límites de uso**
+    - Cada cliente (IP) tiene un máximo de solicitudes por minuto. El inicio de sesión y el registro tienen un límite más estricto, contado por separado. `/health` no tiene límite.
+    - Al superarlo, la API responde `429` (`TOO_MANY_REQUESTS`) con el encabezado `Retry-After` (segundos). La app debe esperar ese tiempo antes de reintentar.
+    - Un cuerpo JSON mayor al límite configurado responde `413` (`PAYLOAD_TOO_LARGE`).
+
     **Trazabilidad y datos sensibles**
     - Cada respuesta incluye el encabezado `x-correlation-id`. Si la app envía uno (hasta 100 caracteres: letras, números y `._:-`) se conserva; si no, el servidor genera un UUID. Los errores lo repiten en `correlationId`.
     - El celular se guarda **ofuscado** en la base de datos (`987654321` queda como `987****21`) y cifrado aparte. La API devuelve el número real solo al dueño del perfil y a la contraparte autorizada (HU-12, HU-13).
@@ -137,6 +142,8 @@ paths:
                     code: EMAIL_ALREADY_REGISTERED
                     detail: Ya existe una cuenta con ese correo.
                     instance: /api/v1/party-data-management/initiation
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
       x-bian:
         serviceDomain: Party Data Management
         actionTerm: Initiate
@@ -278,6 +285,7 @@ paths:
         HU-02. Devuelve un JWT que vence a los 30 días. Si los datos son incorrectos, el mensaje no indica cuál falló.
         La app guarda el token en DataStore y lo envía en cada petición. Cerrar sesión solo borra el token en el teléfono.
         Si el backend responde 401 en cualquier endpoint, la app borra el token y vuelve al inicio de sesión.
+        Tiene un límite estricto de intentos por minuto y por cliente; al superarlo responde 429 con `Retry-After`.
       operationId: initiatePartyAuthentication
       security: []
       requestBody:
@@ -325,6 +333,8 @@ paths:
           $ref: '#/components/responses/BadRequest'
         '401':
           $ref: '#/components/responses/Unauthorized'
+        '429':
+          $ref: '#/components/responses/TooManyRequests'
       x-bian:
         serviceDomain: Party Authentication
         actionTerm: Initiate
@@ -1882,6 +1892,29 @@ components:
                 code: UNAUTHENTICATED
                 detail: Correo o contraseña incorrectos.
                 instance: /api/v1/party-authentication/initiation
+    TooManyRequests:
+      description: Límite de solicitudes superado (`TOO_MANY_REQUESTS`). Espera los segundos indicados en `Retry-After`.
+      headers:
+        Retry-After:
+          description: Segundos que debe esperar la app antes de volver a intentar.
+          schema:
+            type: integer
+            example: 42
+      content:
+        application/problem+json:
+          schema:
+            $ref: '#/components/schemas/Problem'
+          examples:
+            limite:
+              summary: Demasiados intentos de inicio de sesión
+              value:
+                type: https://api.reciclatru.example.com/errors/too-many-requests
+                title: Demasiadas solicitudes
+                status: 429
+                code: TOO_MANY_REQUESTS
+                detail: Superaste el límite de solicitudes. Intenta de nuevo en unos segundos.
+                instance: /api/v1/party-authentication/initiation
+                correlationId: 4f1c9a62-7d3b-4e58-9b0a-2c6e8d1f5a37
     Forbidden:
       description: 'Sin permiso. Códigos: `FORBIDDEN_ROLE`, `NOT_ORDER_OWNER`, `NOT_CHOSEN_RECYCLER`.'
       content:
@@ -2481,6 +2514,7 @@ components:
           example: 409
         code:
           type: string
+          description: Incluye `TOO_MANY_REQUESTS` (429) y `PAYLOAD_TOO_LARGE` (413) además de los códigos de negocio.
           example: ORDER_NOT_AVAILABLE
         detail:
           type: string

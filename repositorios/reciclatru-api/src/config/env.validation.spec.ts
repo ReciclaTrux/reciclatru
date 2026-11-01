@@ -43,3 +43,44 @@ describe('validateEnv', () => {
     ).toThrow(/PHONE_ENCRYPTION_KEY/);
   });
 });
+
+describe('validateEnv: request protection settings', () => {
+  it('turns on the limits with safe defaults', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      RATE_LIMIT_ENABLED: true,
+      RATE_LIMIT_WINDOW_SECONDS: 60,
+      RATE_LIMIT_MAX: 100,
+      RATE_LIMIT_AUTH_MAX: 10,
+      JSON_BODY_LIMIT: '50kb',
+    });
+  });
+
+  it('trusts one proxy by default and rejects absurd values', () => {
+    expect(validateEnv(valid).TRUST_PROXY_HOPS).toBe(1);
+    expect(validateEnv({ ...valid, TRUST_PROXY_HOPS: '2' }).TRUST_PROXY_HOPS).toBe(2);
+    expect(() => validateEnv({ ...valid, TRUST_PROXY_HOPS: '9' })).toThrow(/Invalid environment/);
+  });
+
+  it('reads the string "false" as false', () => {
+    expect(validateEnv({ ...valid, RATE_LIMIT_ENABLED: 'false' }).RATE_LIMIT_ENABLED).toBe(false);
+  });
+
+  it('accepts custom numbers and sizes', () => {
+    expect(validateEnv({ ...valid, RATE_LIMIT_AUTH_MAX: '5', JSON_BODY_LIMIT: '1mb' })).toMatchObject({
+      RATE_LIMIT_AUTH_MAX: 5,
+      JSON_BODY_LIMIT: '1mb',
+    });
+  });
+
+  it.each([
+    ['RATE_LIMIT_MAX', '0'],
+    ['RATE_LIMIT_WINDOW_SECONDS', '5000'],
+    ['JSON_BODY_LIMIT', 'big'],
+  ])('rejects %s=%s', (name, value) => {
+    expect(() => validateEnv({ ...valid, [name]: value })).toThrow(/Invalid environment configuration/);
+  });
+
+  it('leaves CORS off when no origin is given', () => {
+    expect(validateEnv(valid).CORS_ORIGINS).toBeUndefined();
+  });
+});

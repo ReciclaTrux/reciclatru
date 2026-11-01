@@ -18,6 +18,14 @@ export const appConfig = registerAs('app', () => ({
   env: process.env.NODE_ENV ?? 'development',
   port: Number(process.env.PORT ?? 3000),
   version: readVersion(),
+  trustProxyHops: Number(process.env.TRUST_PROXY_HOPS ?? 1),
+  bodyLimit: process.env.JSON_BODY_LIMIT ?? '50kb',
+  rateLimit: {
+    enabled: (process.env.RATE_LIMIT_ENABLED ?? 'true') === 'true',
+    windowSeconds: Number(process.env.RATE_LIMIT_WINDOW_SECONDS ?? 60),
+    max: Number(process.env.RATE_LIMIT_MAX ?? 100),
+    authMax: Number(process.env.RATE_LIMIT_AUTH_MAX ?? 10),
+  },
   corsOrigins: parseCorsOrigins(process.env.CORS_ORIGINS),
   errorTypeBaseUrl: process.env.ERROR_TYPE_BASE_URL ?? 'https://api.reciclatru.example.com/errors',
   database: {
