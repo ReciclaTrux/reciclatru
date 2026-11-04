@@ -192,5 +192,7 @@ class RegisterViewModelTest {
             loginError?.let { throw it }
             return Session(userId = "u-1", token = "token", role = lastRole ?: UserRole.Neighbor)
         }
+
+        override suspend fun logout() = Unit
     }
 }
