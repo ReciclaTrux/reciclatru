@@ -8,6 +8,7 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.network.apiCall
 import pe.edu.upn.reciclatru.core.session.Session
 import pe.edu.upn.reciclatru.core.session.SessionStore
+import pe.edu.upn.reciclatru.core.session.SignOutReason
 import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.auth.domain.AuthRepository
 import javax.inject.Inject
@@ -43,4 +44,8 @@ class AuthRepositoryImpl @Inject constructor(
             sessionStore.save(session)
             session
         }
+
+    override suspend fun logout() {
+        sessionStore.clear(SignOutReason.Logout)
+    }
 }
