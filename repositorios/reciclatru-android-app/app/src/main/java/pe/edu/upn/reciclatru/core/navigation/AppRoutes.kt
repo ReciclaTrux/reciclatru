@@ -9,4 +9,5 @@ package pe.edu.upn.reciclatru.core.navigation
 object AppRoutes {
     const val Home = "home"
     const val PickupLocation = "profile/pickup-location"
+    const val Register = "auth/register"
 }
