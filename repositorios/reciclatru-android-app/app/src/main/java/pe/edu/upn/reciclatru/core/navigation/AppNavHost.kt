@@ -35,7 +35,6 @@ import pe.edu.upn.reciclatru.feature.profile.ui.LocationScreen
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
-import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinnerSize
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSpacing
@@ -83,9 +82,7 @@ fun AppNavHost(
                     }
                 }
             }
-            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                RtSpinner(size = RtSpinnerSize.Large)
-            }
+            Box(modifier = Modifier.fillMaxSize())
         }
         composable(
             route = AppRoutes.Login,
