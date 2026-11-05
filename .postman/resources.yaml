@@ -1,0 +1,7 @@
+# Use this workspace to collaborate
+workspace:
+  id: 3108c98a-98c5-470a-8d1e-f06457528f65
+
+localResources:
+  specs:
+    - ../repositorios/reciclatru-openapi/reciclatru-openapi-v1.yaml
