@@ -15,6 +15,7 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.session.Session
 import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.auth.domain.AuthRepository
+import pe.edu.upn.reciclatru.feature.auth.domain.LoginResult
 import pe.edu.upn.reciclatru.feature.auth.domain.LoginUseCase
 import pe.edu.upn.reciclatru.feature.auth.domain.RegisterUseCase
 
@@ -187,10 +188,13 @@ class RegisterViewModelTest {
             registerError?.let { throw it }
         }
 
-        override suspend fun login(email: String, password: String): Session {
+        override suspend fun login(email: String, password: String): LoginResult {
             loginCalls++
             loginError?.let { throw it }
-            return Session(userId = "u-1", token = "token", role = lastRole ?: UserRole.Neighbor)
+            return LoginResult(
+                session = Session(userId = "u-1", token = "token", role = lastRole ?: UserRole.Neighbor),
+                profileComplete = false,
+            )
         }
 
         override suspend fun logout() = Unit
