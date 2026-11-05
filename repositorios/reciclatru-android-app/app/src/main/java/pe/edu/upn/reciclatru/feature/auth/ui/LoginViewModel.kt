@@ -62,8 +62,14 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(submitting = true, generalError = null) }
         viewModelScope.launch {
             try {
-                val session = login(email = email, password = current.password)
-                _uiState.update { it.copy(submitting = false, loggedInRole = session.role) }
+                val result = login(email = email, password = current.password)
+                _uiState.update {
+                    it.copy(
+                        submitting = false,
+                        loggedInRole = result.session.role,
+                        needsProfile = !result.profileComplete,
+                    )
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {

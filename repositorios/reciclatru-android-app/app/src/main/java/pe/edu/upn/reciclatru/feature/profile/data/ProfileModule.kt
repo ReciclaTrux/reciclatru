@@ -10,6 +10,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import pe.edu.upn.reciclatru.feature.profile.domain.GeocodingRepository
 import pe.edu.upn.reciclatru.feature.profile.domain.ProfileRepository
+import pe.edu.upn.reciclatru.feature.profile.domain.UserProfileRepository
 import retrofit2.Retrofit
 import java.util.Locale
 import javax.inject.Singleton
@@ -29,6 +30,10 @@ abstract class ProfileModule {
     @Binds
     @Singleton
     abstract fun bindGeocodingRepository(implementation: GeocodingRepositoryImpl): GeocodingRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindUserProfileRepository(implementation: UserProfileRepositoryImpl): UserProfileRepository
 
     companion object {
 

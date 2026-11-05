@@ -11,6 +11,8 @@ object AppRoutes {
     const val Home = "home"
     const val PickupLocation = "profile/pickup-location"
     const val Register = "auth/register"
+    const val CompleteProfile = "profile/complete"
+    const val Profile = "profile"
     const val ExpiredArg = "expired"
     const val Login = "auth/login?$ExpiredArg={$ExpiredArg}"
 

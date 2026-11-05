@@ -12,4 +12,5 @@ data class LoginUiState(
     val generalError: String? = null,
     val submitting: Boolean = false,
     val loggedInRole: UserRole? = null,
+    val needsProfile: Boolean = false,
 )

@@ -6,11 +6,11 @@ import pe.edu.upn.reciclatru.core.di.IoDispatcher
 import pe.edu.upn.reciclatru.core.network.NetworkErrorKind
 import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.network.apiCall
-import pe.edu.upn.reciclatru.core.session.Session
 import pe.edu.upn.reciclatru.core.session.SessionStore
 import pe.edu.upn.reciclatru.core.session.SignOutReason
 import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.auth.domain.AuthRepository
+import pe.edu.upn.reciclatru.feature.auth.domain.LoginResult
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -31,7 +31,7 @@ class AuthRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun login(email: String, password: String): Session =
+    override suspend fun login(email: String, password: String): LoginResult =
         withContext(ioDispatcher) {
             val response = apiCall {
                 api.login(LoginRequestDto(email = email, password = password))
@@ -42,7 +42,10 @@ class AuthRepositoryImpl @Inject constructor(
                     message = "No pudimos completar la operación. Inténtalo de nuevo.",
                 )
             sessionStore.save(session)
-            session
+            LoginResult(
+                session = session,
+                profileComplete = response.record?.profileComplete ?: false,
+            )
         }
 
     override suspend fun logout() {

@@ -1,6 +1,7 @@
 package pe.edu.upn.reciclatru.feature.profile.data
 
 import retrofit2.http.Body
+import retrofit2.http.GET
 import retrofit2.http.PUT
 import retrofit2.http.Path
 
@@ -12,6 +13,12 @@ import retrofit2.http.Path
  * id de la ubicación.
  */
 interface ProfileApi {
+
+    @GET("party-data-management/me/retrieval")
+    suspend fun getProfile(): PartyProfileOutputDto
+
+    @PUT("party-data-management/me/update")
+    suspend fun updateProfile(@Body body: ProfileUpdateRequestDto): PartyProfileOutputDto
 
     @PUT("location-data-management/{id}/pickup-point/update")
     suspend fun updatePickupPoint(
