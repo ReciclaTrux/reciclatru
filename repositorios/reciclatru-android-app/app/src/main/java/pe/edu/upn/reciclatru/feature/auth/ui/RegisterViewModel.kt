@@ -75,8 +75,8 @@ class RegisterViewModel @Inject constructor(
                     register(email = email, password = current.password, role = role)
                     _uiState.update { it.copy(accountCreated = true) }
                 }
-                val session = login(email = email, password = current.password)
-                _uiState.update { it.copy(submitting = false, registeredRole = session.role) }
+                val result = login(email = email, password = current.password)
+                _uiState.update { it.copy(submitting = false, registeredRole = result.session.role) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {

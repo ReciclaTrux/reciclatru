@@ -6,8 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -31,6 +29,8 @@ import pe.edu.upn.reciclatru.core.session.SignOutReason
 import pe.edu.upn.reciclatru.feature.auth.ui.LoginScreen
 import pe.edu.upn.reciclatru.feature.auth.ui.LogoutViewModel
 import pe.edu.upn.reciclatru.feature.auth.ui.RegisterScreen
+import pe.edu.upn.reciclatru.feature.profile.ui.CompleteProfileScreen
+import pe.edu.upn.reciclatru.feature.profile.ui.ProfileScreen
 import pe.edu.upn.reciclatru.feature.profile.ui.LocationScreen
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
@@ -68,6 +68,11 @@ fun AppNavHost(
             popUpTo(navController.graph.id) { inclusive = true }
         }
     }
+    val goCompleteProfile: () -> Unit = {
+        navController.navigate(AppRoutes.CompleteProfile) {
+            popUpTo(navController.graph.id) { inclusive = true }
+        }
+    }
 
     NavHost(
         navController = navController,
@@ -94,7 +99,7 @@ fun AppNavHost(
             ),
         ) {
             LoginScreen(
-                onLoggedIn = { goHome() },
+                onLoggedIn = { needsProfile -> if (needsProfile) goCompleteProfile() else goHome() },
                 onGoToRegister = {
                     navController.navigate(AppRoutes.Register) {
                         popUpTo(AppRoutes.Login) { inclusive = true }
@@ -103,24 +108,37 @@ fun AppNavHost(
             )
         }
         composable(AppRoutes.Home) {
-            val logoutViewModel: LogoutViewModel = hiltViewModel()
             val healthViewModel: HealthViewModel = hiltViewModel()
             val healthState by healthViewModel.uiState.collectAsStateWithLifecycle()
             HomePlaceholder(
                 healthState = healthState,
                 onRetryHealth = healthViewModel::onRetry,
-                onLogout = logoutViewModel::onLogout,
+                onOpenProfile = { navController.navigate(AppRoutes.Profile) },
                 onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
             )
         }
         composable(AppRoutes.Register) {
             RegisterScreen(
-                onRegistered = { goHome() },
+                onRegistered = { goCompleteProfile() },
                 onGoToLogin = {
                     navController.navigate(AppRoutes.login()) {
                         popUpTo(AppRoutes.Register) { inclusive = true }
                     }
                 },
+            )
+        }
+        composable(AppRoutes.CompleteProfile) {
+            CompleteProfileScreen(
+                onCompleted = { goHome() },
+                onChoosePickupPoint = { navController.navigate(AppRoutes.PickupLocation) },
+            )
+        }
+        composable(AppRoutes.Profile) {
+            val logoutViewModel: LogoutViewModel = hiltViewModel()
+            ProfileScreen(
+                onBack = { navController.popBackStack() },
+                onChoosePickupPoint = { navController.navigate(AppRoutes.PickupLocation) },
+                onLogout = logoutViewModel::onLogout,
             )
         }
         composable(AppRoutes.PickupLocation) {
@@ -140,7 +158,7 @@ fun AppNavHost(
 private fun HomePlaceholder(
     healthState: HealthUiState,
     onRetryHealth: () -> Unit,
-    onLogout: () -> Unit,
+    onOpenProfile: () -> Unit,
     onOpenPickupLocation: () -> Unit,
 ) {
     Column(
@@ -164,8 +182,7 @@ private fun HomePlaceholder(
         BackendHealthStatus(state = healthState, onRetry = onRetryHealth)
         RtInlineAlert(
             tone = RtInlineAlertTone.Info,
-            message = "Esta es la base de la app. El perfil llega con HU-03; el punto de " +
-                "recojo ya está listo como ejemplo.",
+            message = "Esta es la base de la app. Los pedidos llegan en el Sprint 2.",
         )
         RtButton(
             text = "Marcar punto de recojo",
@@ -174,11 +191,11 @@ private fun HomePlaceholder(
             modifier = Modifier.testTag("btn_abrir_ubicacion"),
         )
         RtButton(
-            text = "Cerrar sesión",
-            onClick = onLogout,
-            variant = RtButtonVariant.Text,
-            icon = Icons.AutoMirrored.Rounded.Logout,
-            modifier = Modifier.testTag("btn_cerrar_sesion"),
+            text = "Mi perfil",
+            onClick = onOpenProfile,
+            variant = RtButtonVariant.Secondary,
+            fullWidth = true,
+            modifier = Modifier.testTag("btn_abrir_perfil"),
         )
     }
 }
@@ -213,7 +230,7 @@ private fun HomePlaceholderPreview() {
             HomePlaceholder(
                 healthState = HealthUiState(checking = false, connected = true),
                 onRetryHealth = {},
-                onLogout = {},
+                onOpenProfile = {},
                 onOpenPickupLocation = {},
             )
         }

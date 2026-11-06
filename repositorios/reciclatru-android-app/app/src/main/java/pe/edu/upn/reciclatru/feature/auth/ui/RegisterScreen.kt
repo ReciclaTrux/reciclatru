@@ -155,7 +155,6 @@ private fun RegisterContent(
                 error = state.emailError,
                 leadingIcon = Icons.Rounded.Mail,
                 keyboardType = KeyboardType.Email,
-                readOnly = state.submitting,
                 modifier = Modifier.testTag("input_correo"),
             )
             RtTextField(
@@ -166,7 +165,6 @@ private fun RegisterContent(
                 error = state.passwordError,
                 leadingIcon = Icons.Rounded.Lock,
                 keyboardType = KeyboardType.Password,
-                readOnly = state.submitting,
                 visualTransformation = if (state.passwordVisible) {
                     VisualTransformation.None
                 } else {

@@ -16,6 +16,7 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.session.Session
 import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.auth.domain.AuthRepository
+import pe.edu.upn.reciclatru.feature.auth.domain.LoginResult
 import pe.edu.upn.reciclatru.feature.auth.domain.LoginUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -66,6 +67,18 @@ class LoginViewModelTest {
         assertEquals(UserRole.Recycler, viewModel.uiState.value.loggedInRole)
         assertEquals("juan.perez@gmail.com", repository.lastEmail)
         assertFalse(viewModel.uiState.value.submitting)
+        assertFalse(viewModel.uiState.value.needsProfile)
+    }
+
+    @Test
+    fun `con perfil incompleto pide completarlo`() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(FakeAuthRepository(profileComplete = false))
+        viewModel.fill()
+
+        viewModel.onSubmit()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.needsProfile)
     }
 
     @Test
@@ -137,6 +150,7 @@ class LoginViewModelTest {
 
     private class FakeAuthRepository(
         private val role: UserRole = UserRole.Neighbor,
+        private val profileComplete: Boolean = true,
         private val error: Exception? = null,
     ) : AuthRepository {
         var loginCalls = 0
@@ -144,11 +158,14 @@ class LoginViewModelTest {
 
         override suspend fun register(email: String, password: String, role: UserRole) = Unit
 
-        override suspend fun login(email: String, password: String): Session {
+        override suspend fun login(email: String, password: String): LoginResult {
             loginCalls++
             lastEmail = email
             error?.let { throw it }
-            return Session(userId = "u-1", token = "token", role = role)
+            return LoginResult(
+                session = Session(userId = "u-1", token = "token", role = role),
+                profileComplete = profileComplete,
+            )
         }
 
         override suspend fun logout() = Unit

@@ -37,7 +37,6 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonSize
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
@@ -51,7 +50,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.theme.RtTheme
 
 @Composable
 fun LoginScreen(
-    onLoggedIn: (UserRole) -> Unit,
+    onLoggedIn: (needsProfile: Boolean) -> Unit,
     onGoToRegister: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: LoginViewModel = hiltViewModel(),
@@ -59,7 +58,7 @@ fun LoginScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.loggedInRole) {
-        state.loggedInRole?.let(onLoggedIn)
+        if (state.loggedInRole != null) onLoggedIn(state.needsProfile)
     }
 
     LoginContent(
@@ -175,7 +174,6 @@ private fun LoginContent(
                 error = state.emailError,
                 leadingIcon = Icons.Rounded.Mail,
                 keyboardType = KeyboardType.Email,
-                readOnly = state.submitting,
                 modifier = Modifier.testTag("input_correo"),
             )
             RtTextField(
@@ -186,7 +184,6 @@ private fun LoginContent(
                 error = state.passwordError,
                 leadingIcon = Icons.Rounded.Lock,
                 keyboardType = KeyboardType.Password,
-                readOnly = state.submitting,
                 visualTransformation = if (state.passwordVisible) {
                     VisualTransformation.None
                 } else {
