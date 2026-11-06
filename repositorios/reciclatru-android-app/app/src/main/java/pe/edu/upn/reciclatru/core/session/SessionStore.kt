@@ -5,6 +5,9 @@ import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.catch
@@ -49,6 +52,15 @@ class SessionStore @Inject constructor(
      */
     suspend fun awaitSession(): Session? = session.first()
 
+    private val _signedOut = MutableSharedFlow<SignOutReason>(extraBufferCapacity = 1)
+    val signedOut: SharedFlow<SignOutReason> = _signedOut.asSharedFlow()
+
+    suspend fun loadSession(): Session? = try {
+        dataStore.data.first().toSession()
+    } catch (cause: IOException) {
+        null
+    }
+
     suspend fun save(session: Session) {
         dataStore.edit { preferences ->
             preferences[Keys.UserId] = session.userId
@@ -57,8 +69,9 @@ class SessionStore @Inject constructor(
         }
     }
 
-    suspend fun clear() {
+    suspend fun clear(reason: SignOutReason = SignOutReason.Logout) {
         dataStore.edit { preferences -> preferences.clear() }
+        _signedOut.tryEmit(reason)
     }
 
     private fun Preferences.toSession(): Session? {
