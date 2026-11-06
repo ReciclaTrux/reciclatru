@@ -2,4 +2,10 @@
 <resources>
 
     <style name="Theme.ReciclaTru" parent="android:Theme.Material.Light.NoActionBar" />
+
+    <style name="Theme.ReciclaTru.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenBackground">@color/brand_primary</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
+        <item name="postSplashScreenTheme">@style/Theme.ReciclaTru</item>
+    </style>
 </resources>
