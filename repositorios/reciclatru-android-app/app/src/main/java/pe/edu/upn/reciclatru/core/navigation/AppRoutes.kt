@@ -7,6 +7,14 @@ package pe.edu.upn.reciclatru.core.navigation
  * Pendiente cuando lleguen HU-01 y HU-02: destino de ingreso y guarda por sesión.
  */
 object AppRoutes {
+    const val Start = "start"
     const val Home = "home"
     const val PickupLocation = "profile/pickup-location"
+    const val Register = "auth/register"
+    const val CompleteProfile = "profile/complete"
+    const val Profile = "profile"
+    const val ExpiredArg = "expired"
+    const val Login = "auth/login?$ExpiredArg={$ExpiredArg}"
+
+    fun login(expired: Boolean = false): String = "auth/login?$ExpiredArg=$expired"
 }

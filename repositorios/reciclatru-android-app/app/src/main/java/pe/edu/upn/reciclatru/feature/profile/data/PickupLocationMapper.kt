@@ -8,25 +8,25 @@ internal fun PickupLocation.toRequestDto(): PickupPointRequestDto = PickupPointR
     longitude = point.longitude,
     address = address,
     district = district,
-    referenceNote = referenceNote,
 )
 
 /**
- * Toma lo que devolvió la API y, si un campo opcional vino vacío, conserva el valor que
- * se envió. La pantalla nunca muestra una dirección inventada.
+ * Toma el punto de recojo del perfil que devolvió la API y, si un campo opcional vino
+ * vacío, conserva el valor que se envió. La pantalla nunca muestra una dirección inventada.
  */
-internal fun PickupLocationDto.toDomain(fallback: PickupLocation): PickupLocation {
-    val latitude = latitude
-    val longitude = longitude
+internal fun PartyProfileOutputDto.toPickupLocation(fallback: PickupLocation): PickupLocation {
+    val pickupPoint = record?.pickupPoint
+    val latitude = pickupPoint?.latitude
+    val longitude = pickupPoint?.longitude
     return PickupLocation(
-        id = id ?: fallback.id,
+        id = fallback.id,
         point = if (latitude != null && longitude != null) {
             GeoPoint(latitude = latitude, longitude = longitude)
         } else {
             fallback.point
         },
-        address = address?.takeIf { it.isNotBlank() } ?: fallback.address,
-        district = district?.takeIf { it.isNotBlank() } ?: fallback.district,
-        referenceNote = referenceNote ?: fallback.referenceNote,
+        address = pickupPoint?.address?.takeIf { it.isNotBlank() } ?: fallback.address,
+        district = pickupPoint?.district?.takeIf { it.isNotBlank() } ?: fallback.district,
+        referenceNote = record?.reference ?: fallback.referenceNote,
     )
 }
