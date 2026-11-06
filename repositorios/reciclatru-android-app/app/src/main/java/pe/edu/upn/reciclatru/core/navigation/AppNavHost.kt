@@ -21,8 +21,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import pe.edu.upn.reciclatru.core.health.ui.HealthUiState
 import pe.edu.upn.reciclatru.core.health.ui.HealthViewModel
+import pe.edu.upn.reciclatru.feature.auth.ui.RegisterScreen
 import pe.edu.upn.reciclatru.feature.profile.ui.LocationScreen
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
@@ -52,7 +54,18 @@ fun AppNavHost(
             HomePlaceholder(
                 healthState = healthState,
                 onRetryHealth = healthViewModel::onRetry,
+                onOpenRegister = { navController.navigate(AppRoutes.Register) },
                 onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
+            )
+        }
+        composable(AppRoutes.Register) {
+            RegisterScreen(
+                onRegistered = {
+                    navController.navigate(AppRoutes.Home) {
+                        popUpTo(AppRoutes.Home) { inclusive = true }
+                    }
+                },
+                onGoToLogin = { navController.popBackStack() },
             )
         }
         composable(AppRoutes.PickupLocation) {
@@ -72,6 +85,7 @@ fun AppNavHost(
 private fun HomePlaceholder(
     healthState: HealthUiState,
     onRetryHealth: () -> Unit,
+    onOpenRegister: () -> Unit,
     onOpenPickupLocation: () -> Unit,
 ) {
     Column(
@@ -97,6 +111,13 @@ private fun HomePlaceholder(
             tone = RtInlineAlertTone.Info,
             message = "Esta es la base de la app. El registro y el ingreso llegan con " +
                 "HU-01 y HU-02; el punto de recojo ya está listo como ejemplo.",
+        )
+        RtButton(
+            text = "Crear cuenta",
+            onClick = onOpenRegister,
+            variant = RtButtonVariant.Secondary,
+            fullWidth = true,
+            modifier = Modifier.testTag("btn_abrir_registro"),
         )
         RtButton(
             text = "Marcar punto de recojo",
@@ -137,6 +158,7 @@ private fun HomePlaceholderPreview() {
             HomePlaceholder(
                 healthState = HealthUiState(checking = false, connected = true),
                 onRetryHealth = {},
+                onOpenRegister = {},
                 onOpenPickupLocation = {},
             )
         }
