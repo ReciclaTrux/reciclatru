@@ -26,6 +26,7 @@ import androidx.navigation.compose.rememberNavController
 import pe.edu.upn.reciclatru.core.health.ui.HealthUiState
 import pe.edu.upn.reciclatru.core.health.ui.HealthViewModel
 import pe.edu.upn.reciclatru.core.session.SignOutReason
+import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.auth.ui.LoginScreen
 import pe.edu.upn.reciclatru.feature.auth.ui.LogoutViewModel
 import pe.edu.upn.reciclatru.feature.auth.ui.RegisterScreen
@@ -54,6 +55,7 @@ fun AppNavHost(
     sessionViewModel: AppSessionViewModel = hiltViewModel(),
 ) {
     val startDestination by sessionViewModel.startDestination.collectAsStateWithLifecycle()
+    val role by sessionViewModel.role.collectAsStateWithLifecycle()
 
     LaunchedEffect(navController) {
         sessionViewModel.signedOut.collect { reason ->
@@ -113,6 +115,7 @@ fun AppNavHost(
             HomePlaceholder(
                 healthState = healthState,
                 onRetryHealth = healthViewModel::onRetry,
+                showPickupLocation = role == UserRole.Neighbor,
                 onOpenProfile = { navController.navigate(AppRoutes.Profile) },
                 onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
             )
@@ -158,6 +161,7 @@ fun AppNavHost(
 private fun HomePlaceholder(
     healthState: HealthUiState,
     onRetryHealth: () -> Unit,
+    showPickupLocation: Boolean,
     onOpenProfile: () -> Unit,
     onOpenPickupLocation: () -> Unit,
 ) {
@@ -184,12 +188,14 @@ private fun HomePlaceholder(
             tone = RtInlineAlertTone.Info,
             message = "Esta es la base de la app. Los pedidos llegan en el Sprint 2.",
         )
-        RtButton(
-            text = "Marcar punto de recojo",
-            onClick = onOpenPickupLocation,
-            fullWidth = true,
-            modifier = Modifier.testTag("btn_abrir_ubicacion"),
-        )
+        if (showPickupLocation) {
+            RtButton(
+                text = "Marcar punto de recojo",
+                onClick = onOpenPickupLocation,
+                fullWidth = true,
+                modifier = Modifier.testTag("btn_abrir_ubicacion"),
+            )
+        }
         RtButton(
             text = "Mi perfil",
             onClick = onOpenProfile,
@@ -230,6 +236,7 @@ private fun HomePlaceholderPreview() {
             HomePlaceholder(
                 healthState = HealthUiState(checking = false, connected = true),
                 onRetryHealth = {},
+                showPickupLocation = true,
                 onOpenProfile = {},
                 onOpenPickupLocation = {},
             )
