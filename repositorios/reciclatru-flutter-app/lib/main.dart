@@ -1,7 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 
+import 'core/design_system/atoms/rt_button.dart';
 import 'core/design_system/atoms/rt_spinner.dart';
 import 'core/design_system/molecules/rt_inline_alert.dart';
 import 'core/design_system/theme/rt_colors.dart';
@@ -10,15 +12,14 @@ import 'core/design_system/theme/rt_theme.dart';
 import 'core/network/api_exception.dart';
 import 'core/network/backend_status_notifier.dart';
 
+import 'features/auth/presentation/register_screen.dart';
+import 'features/auth/presentation/login_screen.dart';
+
 void main() {
-  // La vista de Android por defecto usa GLSurfaceView (Virtual Display), que
-  // queda por encima de los overlays de Flutter y se queda con los toques.
-  // TextureView deja que las sugerencias, el pin y la hoja reciban los taps.
   MapLibreMap.useHybridComposition = true;
   runApp(const ProviderScope(child: ReciclaTruApp()));
 }
 
-/// Punto de entrada de la app. El tema del sistema se aplica aquí.
 class ReciclaTruApp extends StatelessWidget {
   const ReciclaTruApp({super.key});
 
@@ -26,18 +27,19 @@ class ReciclaTruApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'ReciclaTru',
+      debugShowCheckedModeBanner: false,
       theme: rtTheme,
-      home: const _StartupPlaceholder(),
+      home: const WelcomeScreen(),
+      routes: {
+        '/register': (context) => const RegisterScreen(),
+        '/login': (context) => const LoginScreen(),
+      },
     );
   }
 }
 
-/// Marcador de posición mientras las HU agregan sus pantallas.
-///
-/// Sigue la indicación del sistema para el nombre: "ReciclaTru" en
-/// `headline-lg` y color `ods-12`.
-class _StartupPlaceholder extends ConsumerWidget {
-  const _StartupPlaceholder();
+class WelcomeScreen extends ConsumerWidget {
+  const WelcomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -48,39 +50,101 @@ class _StartupPlaceholder extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Center(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.all(RtSpacing.s4),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: <Widget>[
+              children: [
+                const SizedBox(height: 30),
+
+                Icon(
+                  Icons.recycling,
+                  size: 90,
+                  color: extra.ods12,
+                ),
+
+                const SizedBox(height: 20),
+
                 Text(
                   'ReciclaTru',
                   textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium?.copyWith(
                     color: extra.ods12,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
-                const SizedBox(height: RtSpacing.s4),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'Dale una segunda oportunidad a los materiales '
+                  'y contribuye a un futuro más sostenible.',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.bodyLarge,
+                ),
+
+                const SizedBox(height: 35),
+
+                RtButton(
+                  text: 'Iniciar sesión',
+                  fullWidth: true,
+                  onClick: () {
+                    Navigator.pushNamed(context, '/login');
+                  },
+                ),
+
+                const SizedBox(height: 16),
+
+                RtButton(
+                  text: 'Registrarme',
+                  fullWidth: true,
+                  onClick: () {
+                    Navigator.pushNamed(context, '/register');
+                  },
+                ),
+
+                const SizedBox(height: 35),
+
+                const Divider(),
+
+                const SizedBox(height: 12),
+
+                Text(
+                  'Estado del servidor',
+                  textAlign: TextAlign.center,
+                  style: theme.textTheme.titleSmall,
+                ),
+
+                const SizedBox(height: 12),
+
                 status.when(
                   loading: () => const Center(
-                    child: RtSpinner(key: Key('spinner_conexion_backend')),
+                    child: RtSpinner(
+                      key: Key('spinner_conexion_backend'),
+                    ),
                   ),
+
                   data: (_) => const RtInlineAlert(
                     key: Key('alert_conexion_backend'),
                     tone: RtInlineAlertTone.success,
-                    message: 'Conectado',
+                    message: 'Servidor conectado',
                   ),
+
                   error: (error, _) => RtInlineAlert(
                     key: const Key('alert_conexion_backend'),
                     tone: RtInlineAlertTone.error,
                     message: error is ApiException
                         ? error.message
-                        : 'No pudimos conectar con la API. Intenta de nuevo.',
+                        : 'No pudimos conectar con el servidor.',
                     actionLabel: 'Reintentar',
-                    onAction: ref.read(backendStatusProvider.notifier).retry,
+                    onAction: ref
+                        .read(backendStatusProvider.notifier)
+                        .retry,
                   ),
                 ),
+
+                const SizedBox(height: 20),
               ],
             ),
           ),
