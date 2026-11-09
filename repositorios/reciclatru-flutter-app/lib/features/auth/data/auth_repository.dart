@@ -1,9 +1,6 @@
 import 'package:dio/dio.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/network/network_providers.dart'; // Importa el dioProvider global que ya usa apiBaseUrl
 import '../domain/auth_response.dart';
-import '../domain/user_model.dart';
 
 class AuthRepository {
   final Dio _dio;
@@ -11,35 +8,29 @@ class AuthRepository {
   AuthRepository(this._dio);
 
   // HU-01: Registrar usuario con rol NEIGHBOR o RECYCLER
-  Future<UserModel> register(
+  Future<void> register(
     String email,
     String password,
     String role,
   ) async {
     try {
-      final response = await _dio.post(
-        '/party-data-management/initiation',//
+      await _dio.post(
+        '/party-data-management/initiation',
         data: {
           'email': email.trim().toLowerCase(),
           'password': password,
-          'role': role, // "NEIGHBOR" o "RECYCLER"
+          'role': role,
         },
       );
-
-      if (response.statusCode == 200 || response.statusCode == 201) {
-        final responseData = response.data;
-
-        final data = responseData is Map<String, dynamic>
-            ? responseData['partyDataManagementInstanceRecord'] ?? responseData
-            : responseData;
-
-        return UserModel.fromJson(
-          Map<String, dynamic>.from(data),
-        );
-      }
-
-      throw Exception('Error al registrar usuario');
+      // Como en Kotlin, HU-01 no depende de los campos opcionales del
+      // registro retornado por el backend.
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        throw Exception('Ya existe una cuenta con este correo');
+      }
+      if (e.response?.statusCode == 429) {
+        throw Exception('Hiciste muchos intentos. Espera un momento e inténtalo de nuevo.');
+      }
       throw Exception(_extractErrorMessage(e));
     }
   }
@@ -95,9 +86,3 @@ class AuthRepository {
     return 'Error de conexión con el servidor.';
   }
 }
-
-// Proveedor para conectar el repositorio con la UI mediante Riverpod
-final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final dio = ref.watch(dioProvider); // Toma automáticamente el Dio configurado con apiBaseUrl
-  return AuthRepository(dio);
-});
