@@ -1,34 +1,24 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../../core/network/network_providers.dart'; // Importa el dioProvider global
+import '../../../core/network/network_providers.dart';
 import '../data/auth_repository.dart';
 import '../domain/user_model.dart';
 
-// Proveedor del repositorio conectado al Dio global
+// Una sola definición del provider (sin duplicarla en auth_repository.dart).
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final dio = ref.watch(dioProvider);
-  return AuthRepository(dio); // ✅ Ahora sí le pasamos el cliente Dio correctamente
+  return AuthRepository(ref.watch(dioProvider), ref.watch(sessionStoreProvider));
 });
 
-// Notificador moderno para el usuario autenticado
-final authUserProvider = NotifierProvider<AuthUserNotifier, UserModel?>(() {
-  return AuthUserNotifier();
-});
-
+// Se conserva por compatibilidad con otras pantallas del proyecto.
+final authUserProvider = NotifierProvider<AuthUserNotifier, UserModel?>(AuthUserNotifier.new);
 class AuthUserNotifier extends Notifier<UserModel?> {
   @override
   UserModel? build() => null;
-
-  set user(UserModel? newUser) => state = newUser;
+  set user(UserModel? value) => state = value;
 }
 
-// Notificador moderno para el estado de carga
-final authLoadingProvider = NotifierProvider<AuthLoadingNotifier, bool>(() {
-  return AuthLoadingNotifier();
-});
-
+final authLoadingProvider = NotifierProvider<AuthLoadingNotifier, bool>(AuthLoadingNotifier.new);
 class AuthLoadingNotifier extends Notifier<bool> {
   @override
   bool build() => false;
-
   set isLoading(bool value) => state = value;
 }
