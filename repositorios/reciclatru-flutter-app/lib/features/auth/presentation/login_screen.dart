@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import '../../../core/design_system/atoms/rt_button.dart';
 import '../../../core/design_system/atoms/rt_text_field.dart';
 import '../../../core/design_system/molecules/rt_inline_alert.dart';
+import '../../../core/design_system/organisms/rt_top_app_bar.dart';
 import '../../../core/design_system/theme/rt_radii.dart';
 import '../../../core/design_system/theme/rt_spacing.dart';
 import 'auth_provider.dart';
@@ -43,9 +45,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     setState(() => _submitting = true);
     try {
       await ref.read(authRepositoryProvider).login(email, _password);
-      if (!mounted) return;
-      // SessionGate reacciona a SessionStore.save y muestra el destino.
-      Navigator.of(context).popUntil((route) => route.isFirst);
     } catch (error) {
       if (!mounted) return;
       setState(() => _generalError = error.toString().replaceFirst('Exception: ', ''));
@@ -59,6 +58,16 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(RtSize.appbarHeight + RtStroke.divider),
+        child: SafeArea(
+          bottom: false,
+          child: RtTopAppBar(
+            title: 'Iniciar sesión',
+            onBack: () => context.canPop() ? context.pop() : context.go('/'),
+          ),
+        ),
+      ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -80,7 +89,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                     style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
                   RtButton(
                     text: 'Regístrate',
-                    onClick: () => Navigator.pushReplacementNamed(context, '/register'),
+                    onClick: () => context.push('/register'),
                     variant: RtButtonVariant.text,
                     size: RtButtonSize.compact,
                     enabled: !_submitting,
