@@ -21,6 +21,8 @@ class RegisterScreen extends ConsumerStatefulWidget {
 }
 
 class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  bool _submitting = false;
+
   // Datos del formulario
   String _email = '';
   String _password = '';
@@ -39,6 +41,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
   // Validar y registrar usuario
   Future<void> _handleRegister() async {
+    if (_submitting) return;
+
     // Limpiar errores anteriores
     setState(() {
       _emailError = null;
@@ -57,10 +61,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       hasError = true;
     } else {
       final emailRegex =
-          RegExp(r'^[\w.+-]+@([\w-]+\.)+[\w-]{2,}$');
+          RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
 
       if (!emailRegex.hasMatch(email)) {
-        _emailError = 'Ingresa un correo electrónico válido.';
+        _emailError = 'Ingresa un correo válido.';
         hasError = true;
       }
     }
@@ -71,13 +75,13 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       hasError = true;
     } else if (_password.length < 8) {
       _passwordError =
-          'La contraseña debe tener al menos 8 caracteres.';
+          'Debe tener al menos 8 caracteres.';
       hasError = true;
     }
 
     // Validar selección de rol
     if (_selectedRole == null) {
-      _roleError = 'Selecciona cómo utilizarás ReciclaTru.';
+      _roleError = 'Elige cómo usarás ReciclaTru.';
       hasError = true;
     }
 
@@ -90,14 +94,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         ? 'NEIGHBOR'
         : 'RECYCLER';
 
-    // Activar carga
-    ref.read(authLoadingProvider.notifier).isLoading = true;
+    // Impedir envíos duplicados.
+    setState(() => _submitting = true);
 
     try {
       final authRepo = ref.read(authRepositoryProvider);
 
       // Conectar con el backend
-      final user = await authRepo.register(
+      await authRepo.register(
         email,
         _password,
         role,
@@ -105,32 +109,32 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
       if (!mounted) return;
 
-      // Mostrar confirmación
+      // HU-02 completará el login automático y la sesión persistente.
+      // En esta entrega HU-01 se abre el login, sin registrar dos veces.
       showRtSnackbar(
         context,
-        message: '¡Cuenta creada correctamente para ${user.email}!',
+        message: 'Cuenta creada. Inicia sesión para continuar.',
       );
-
-      // Regresar a la pantalla anterior
-      Navigator.pop(context);
+      Navigator.pushReplacementNamed(context, '/login');
     } catch (e) {
       if (!mounted) return;
 
+      final message = e.toString().replaceFirst('Exception: ', '');
       setState(() {
-        _formError = e
-            .toString()
-            .replaceFirst('Exception: ', '');
+        if (message == 'Ya existe una cuenta con este correo') {
+          _emailError = message;
+        } else {
+          _formError = message;
+        }
       });
     } finally {
-      if (mounted) {
-        ref.read(authLoadingProvider.notifier).isLoading = false;
-      }
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = ref.watch(authLoadingProvider);
+    final isLoading = _submitting;
     final theme = Theme.of(context);
 
     return Scaffold(
@@ -148,7 +152,14 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             children: [
               // Encabezado
               Text(
-                'Únete a ReciclaTru',
+                'ReciclaTru',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+              const SizedBox(height: RtSpacing.s1),
+              Text(
+                'Crea tu cuenta',
                 style: theme.textTheme.headlineSmall,
               ),
 
@@ -252,14 +263,18 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
 
               const SizedBox(height: RtSpacing.s4),
 
-              // Información adicional
-              Text(
-                'Al crear tu cuenta podrás participar en '
-                'la comunidad de reciclaje de ReciclaTru.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
+              // Navegación equivalente al enlace de Android.
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text('¿Ya tienes cuenta?'),
+                  TextButton(
+                    onPressed: isLoading
+                        ? null
+                        : () => Navigator.pushReplacementNamed(context, '/login'),
+                    child: const Text('Inicia sesión'),
+                  ),
+                ],
               ),
             ],
           ),

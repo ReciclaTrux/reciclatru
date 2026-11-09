@@ -32,12 +32,12 @@ Future<void> _pumpApp(WidgetTester tester, HealthApi api) async {
 }
 
 void main() {
-  testWidgets('muestra Conectado cuando la API responde', (tester) async {
+  testWidgets('muestra Servidor conectado cuando la API responde', (tester) async {
     await _pumpApp(tester, _FakeHealthApi());
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Conectado'), findsOneWidget);
+    expect(find.text('Servidor conectado'), findsOneWidget);
   });
 
   testWidgets('muestra el error con Reintentar cuando no hay conexión', (
@@ -57,10 +57,10 @@ void main() {
 
     expect(find.text('No pudimos conectar con la API.'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
-    expect(find.text('Conectado'), findsNothing);
+    expect(find.text('Servidor conectado'), findsNothing);
   });
 
-  testWidgets('Reintentar vuelve a consultar y muestra Conectado', (
+  testWidgets('Reintentar vuelve a consultar y muestra Servidor conectado', (
     tester,
   ) async {
     final api = _FakeHealthApi(
@@ -79,6 +79,6 @@ void main() {
     await tester.pump();
 
     expect(api.calls, 2);
-    expect(find.text('Conectado'), findsOneWidget);
+    expect(find.text('Servidor conectado'), findsOneWidget);
   });
 }
