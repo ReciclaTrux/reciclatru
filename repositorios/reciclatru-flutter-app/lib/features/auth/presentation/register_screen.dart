@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import 'auth_provider.dart';
 
@@ -10,6 +11,8 @@ import '../../../core/design_system/atoms/rt_button.dart';
 import '../../../core/design_system/molecules/rt_role_selector.dart';
 import '../../../core/design_system/molecules/rt_inline_alert.dart';
 import '../../../core/design_system/molecules/rt_snackbar.dart';
+import '../../../core/design_system/organisms/rt_top_app_bar.dart';
+import '../../../core/design_system/theme/rt_radii.dart';
 import '../../../core/design_system/theme/rt_spacing.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
@@ -115,7 +118,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
         context,
         message: 'Cuenta creada. Inicia sesión para continuar.',
       );
-      Navigator.pushReplacementNamed(context, '/login');
+      if (context.canPop()) {
+        context.pop();
+      } else {
+        context.go('/login');
+      }
     } catch (e) {
       if (!mounted) return;
 
@@ -138,9 +145,15 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Crear cuenta'),
-        elevation: 0,
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(RtSize.appbarHeight + RtStroke.divider),
+        child: SafeArea(
+          bottom: false,
+          child: RtTopAppBar(
+            title: 'Crear cuenta',
+            onBack: () => context.canPop() ? context.pop() : context.go('/login'),
+          ),
+        ),
       ),
 
       body: SafeArea(
@@ -271,7 +284,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                   TextButton(
                     onPressed: isLoading
                         ? null
-                        : () => Navigator.pushReplacementNamed(context, '/login'),
+                        : () => context.canPop() ? context.pop() : context.go('/login'),
                     child: const Text('Inicia sesión'),
                   ),
                 ],

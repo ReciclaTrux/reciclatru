@@ -4,7 +4,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 enum SignOutReason { logout, expired }
 
 class AppSession {
-  const AppSession({required this.userId, required this.token, required this.role});
+  const AppSession({
+    required this.userId,
+    required this.token,
+    required this.role,
+  });
   final String userId;
   final String token;
   final String role;
@@ -29,7 +33,11 @@ class SessionStore extends ChangeNotifier {
     final id = prefs.getString(_idKey);
     final token = prefs.getString(_tokenKey);
     final role = prefs.getString(_roleKey);
-    _session = id != null && id.isNotEmpty && token != null && token.isNotEmpty &&
+    _session =
+        id != null &&
+            id.isNotEmpty &&
+            token != null &&
+            token.isNotEmpty &&
             (role == 'NEIGHBOR' || role == 'RECYCLER')
         ? AppSession(userId: id, token: token, role: role!)
         : null;
@@ -57,6 +65,13 @@ class SessionStore extends ChangeNotifier {
     _session = null;
     _needsProfile = null;
     _lastSignOut = reason;
+    notifyListeners();
+  }
+
+  /// Actualiza el estado local después de completar el perfil.
+  /// Notifica a SessionGate para continuar con la navegación.
+  void markProfileCompleted() {
+    _needsProfile = false;
     notifyListeners();
   }
 }
