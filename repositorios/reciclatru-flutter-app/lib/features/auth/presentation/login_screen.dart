@@ -1,17 +1,17 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
+import '../../../core/design_system/atoms/rt_button.dart';
+import '../../../core/design_system/atoms/rt_text_field.dart';
+import '../../../core/design_system/molecules/rt_inline_alert.dart';
+import '../../../core/design_system/theme/rt_radii.dart';
+import '../../../core/design_system/theme/rt_spacing.dart';
 import 'auth_provider.dart';
 
-import '../../../core/design_system/atoms/rt_text_field.dart';
-import '../../../core/design_system/atoms/rt_button.dart';
-import '../../../core/design_system/molecules/rt_inline_alert.dart';
-import '../../../core/design_system/theme/rt_spacing.dart';
-
+/// Traducción de LoginContent / LoginViewModel de Android HU-02.
+/// Textos, orden y botón fijo inferior siguen LoginScreen.kt.
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
-
+  const LoginScreen({super.key, this.sessionExpired = false});
+  final bool sessionExpired;
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -19,201 +19,138 @@ class LoginScreen extends ConsumerStatefulWidget {
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   String _email = '';
   String _password = '';
+  bool _passwordVisible = false;
+  bool _submitting = false;
+  String? _emailError;
+  String? _passwordError;
+  String? _generalError;
 
-  bool _obscurePassword = true;
-
-  String? _errorMessage;
-  String? _successMessage;
-
-  Future<void> _handleLogin() async {
+  Future<void> _submit() async {
+    if (_submitting) return;
     final email = _email.trim();
-    final password = _password;
-
+    final emailError = email.isEmpty
+        ? 'Ingresa tu correo electrónico.'
+        : !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)
+            ? 'Ingresa un correo válido.'
+            : null;
+    final passwordError = _password.isEmpty ? 'Ingresa tu contraseña.' : null;
     setState(() {
-      _errorMessage = null;
-      _successMessage = null;
+      _emailError = emailError;
+      _passwordError = passwordError;
+      _generalError = null;
     });
-
-    if (email.isEmpty || password.isEmpty) {
-      setState(() {
-        _errorMessage = 'Por favor, completa todos los campos.';
-      });
-      return;
-    }
-
-    ref.read(authLoadingProvider.notifier).isLoading = true;
-
+    if (emailError != null || passwordError != null) return;
+    setState(() => _submitting = true);
     try {
-      final authRepo = ref.read(authRepositoryProvider);
-
-      final response = await authRepo.login(email, password);
-
-      ref.read(authUserProvider.notifier).user = response.user;
-
+      await ref.read(authRepositoryProvider).login(email, _password);
       if (!mounted) return;
-
-      setState(() {
-        _successMessage = '¡Bienvenido, ${response.user.email}!';
-      });
-
-    } catch (e) {
+      // SessionGate reacciona a SessionStore.save y muestra el destino.
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } catch (error) {
       if (!mounted) return;
-
-      setState(() {
-        _errorMessage = e.toString().replaceAll('Exception: ', '');
-      });
-
+      setState(() => _generalError = error.toString().replaceFirst('Exception: ', ''));
     } finally {
-      if (mounted) {
-        ref.read(authLoadingProvider.notifier).isLoading = false;
-      }
+      if (mounted) setState(() => _submitting = false);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final isLoading = ref.watch(authLoadingProvider);
-
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Iniciar sesión'),
+      backgroundColor: theme.colorScheme.surface,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: RtSpacing.s4, vertical: RtSpacing.s3),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              RtButton(
+                text: _submitting ? 'Ingresando…' : 'Ingresar',
+                onClick: _submit,
+                loading: _submitting,
+                fullWidth: true,
+              ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: Text('¿Aún no tienes cuenta?',
+                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+                  RtButton(
+                    text: 'Regístrate',
+                    onClick: () => Navigator.pushReplacementNamed(context, '/register'),
+                    variant: RtButtonVariant.text,
+                    size: RtButtonSize.compact,
+                    enabled: !_submitting,
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(RtSpacing.s4),
-
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const SizedBox(height: 30),
-
-              Icon(
-                Icons.recycling,
-                size: 75,
-                color: theme.colorScheme.primary,
-              ),
-
-              const SizedBox(height: 20),
-
-              Text(
-                '¡Bienvenido a ReciclaTru!',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
+              const SizedBox(height: RtSpacing.s5),
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: theme.colorScheme.primary,
+                  borderRadius: BorderRadius.circular(RtRadii.md),
                 ),
+                child: Icon(Icons.recycling_rounded, color: theme.colorScheme.onPrimary),
               ),
-
-              const SizedBox(height: 8),
-
-              Text(
-                'Ingresa a tu cuenta para continuar.',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyLarge,
-              ),
-
-              const SizedBox(height: 35),
-
-              // Correo electrónico
+              const SizedBox(height: RtSpacing.s4),
+              Text('Hola de nuevo', style: theme.textTheme.headlineSmall),
+              const SizedBox(height: RtSpacing.s1),
+              Text('Ingresa con tu correo y contraseña.',
+                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              const SizedBox(height: RtSpacing.s4),
+              if (_generalError != null) ...[
+                RtInlineAlert(tone: RtInlineAlertTone.error, message: _generalError!),
+                const SizedBox(height: RtSpacing.s4),
+              ] else if (widget.sessionExpired) ...[
+                const RtInlineAlert(tone: RtInlineAlertTone.info,
+                  message: 'Tu sesión expiró. Ingresa de nuevo para continuar.'),
+                const SizedBox(height: RtSpacing.s4),
+              ],
               RtTextField(
                 label: 'Correo electrónico',
                 value: _email,
-                placeholder: 'ejemplo@correo.com',
+                onValueChange: (value) => setState(() {
+                  _email = value;
+                  _emailError = null;
+                  _generalError = null;
+                }),
+                error: _emailError,
+                placeholder: 'nombre@correo.com',
+                leadingIcon: Icons.mail_rounded,
                 keyboardType: TextInputType.emailAddress,
-                leadingIcon: Icons.email_outlined,
-                onValueChange: (value) {
-                  setState(() {
-                    _email = value;
-                    _errorMessage = null;
-                  });
-                },
               ),
-
-              const SizedBox(height: 22),
-
-              // Contraseña
+              const SizedBox(height: RtSpacing.s4),
               RtTextField(
                 label: 'Contraseña',
                 value: _password,
-                placeholder: 'Ingresa tu contraseña',
-                leadingIcon: Icons.lock_outline,
-                obscureText: _obscurePassword,
-                trailingIcon: _obscurePassword
-                    ? Icons.visibility_outlined
-                    : Icons.visibility_off_outlined,
-                trailingIconDescription: _obscurePassword
-                    ? 'Mostrar contraseña'
-                    : 'Ocultar contraseña',
-                onTrailingIconClick: () {
-                  setState(() {
-                    _obscurePassword = !_obscurePassword;
-                  });
-                },
-                onValueChange: (value) {
-                  setState(() {
-                    _password = value;
-                    _errorMessage = null;
-                  });
-                },
-              ),
-
-              const SizedBox(height: 25),
-
-              // Mensaje de error
-              if (_errorMessage != null) ...[
-                RtInlineAlert(
-                  tone: RtInlineAlertTone.error,
-                  message: _errorMessage!,
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // Mensaje de éxito
-              if (_successMessage != null) ...[
-                RtInlineAlert(
-                  tone: RtInlineAlertTone.success,
-                  message: _successMessage!,
-                ),
-                const SizedBox(height: 20),
-              ],
-
-              // Botón iniciar sesión
-              RtButton(
-                text: isLoading
-                    ? 'Iniciando sesión…'
-                    : 'Iniciar sesión',
-                fullWidth: true,
-                loading: isLoading,
-                enabled: !isLoading,
-                icon: Icons.login,
-                onClick: _handleLogin,
-              ),
-
-              const SizedBox(height: 25),
-
-              const Divider(),
-
-              const SizedBox(height: 15),
-
-              Text(
-                '¿Todavía no tienes una cuenta?',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium,
-              ),
-
-              const SizedBox(height: 10),
-
-              RtButton(
-                text: 'Crear una cuenta',
-                variant: RtButtonVariant.secondary,
-                fullWidth: true,
-                onClick: () {
-                  Navigator.pushReplacementNamed(
-                    context,
-                    '/register',
-                  );
-                },
+                onValueChange: (value) => setState(() {
+                  _password = value;
+                  _passwordError = null;
+                  _generalError = null;
+                }),
+                error: _passwordError,
+                placeholder: 'Tu contraseña',
+                leadingIcon: Icons.lock_rounded,
+                keyboardType: TextInputType.visiblePassword,
+                obscureText: !_passwordVisible,
+                trailingIcon: _passwordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
+                trailingIconDescription: _passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
+                onTrailingIconClick: () => setState(() => _passwordVisible = !_passwordVisible),
               ),
             ],
           ),
