@@ -1,30 +1,36 @@
 name: Build
 on:
   push:
-    branches:
-      - main
-    paths: ['repositorios/reciclatru-api/**']  
+    branches: [main]
+    paths: ['repositorios/reciclatru-api/**']
   pull_request:
     types: [opened, synchronize, reopened]
     paths: ['repositorios/reciclatru-api/**']
+
 jobs:
   sonarqube:
     name: SonarQube
-    runs-on: windows-latest
-    defaults:
-      run:
-        working-directory: repositorios/reciclatru-api
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      - name: Cache SonarQube packages
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+
+      - uses: actions/setup-node@v4
         with:
-          path: ~/.sonar/cache
-          key: ${{ runner.os }}-sonar
-          restore-keys: ${{ runner.os }}-sonar
+          node-version: 22
+          cache: npm
+          cache-dependency-path: repositorios/reciclatru-api/package-lock.json
+
+      - name: Instalar dependencias y correr tests con cobertura
+        working-directory: repositorios/reciclatru-api
+        run: |
+          npm ci
+          npm run test:cov
+
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@4d1dc0c91ee400dcf8a6dddf2f705ac36542e304 # v8.4.0
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+        with:
+          projectBaseDir: repositorios/reciclatru-api
