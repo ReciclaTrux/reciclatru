@@ -1,6 +1,15 @@
-/// Equivalente de UserProfile.kt y PickupAddress de Android.
+
+/// Equivalente de UserProfile y PickupAddress de Android.
 class PickupAddress {
-  const PickupAddress({required this.address, required this.district});
+  const PickupAddress({
+    required this.latitude,
+    required this.longitude,
+    required this.address,
+    required this.district,
+  });
+
+  final double latitude;
+  final double longitude;
   final String address;
   final String district;
 }
@@ -15,8 +24,9 @@ class UserProfile {
     required this.pickupAddress,
     required this.profileComplete,
   });
+
   final String email;
-  final String role; // NEIGHBOR o RECYCLER
+  final String role;
   final String? fullName;
   final String? phone;
   final String? reference;
@@ -25,22 +35,36 @@ class UserProfile {
 
   factory UserProfile.fromJson(Map<String, dynamic> response) {
     final raw = response['partyDataManagementInstanceRecord'];
+
     if (raw is! Map) {
-      throw const FormatException('No pudimos completar la operación. Inténtalo de nuevo.');
+      throw const FormatException(
+        'No pudimos completar la operación. Inténtalo de nuevo.',
+      );
     }
+
     final record = Map<String, dynamic>.from(raw);
     final role = record['role'];
+
     if (role != 'NEIGHBOR' && role != 'RECYCLER') {
-      throw const FormatException('No pudimos completar la operación. Inténtalo de nuevo.');
+      throw const FormatException(
+        'No pudimos completar la operación. Inténtalo de nuevo.',
+      );
     }
+
     PickupAddress? pickupAddress;
     final pickup = record['pickupPoint'];
-    if (pickup is Map && pickup['latitude'] is num && pickup['longitude'] is num) {
+
+    if (pickup is Map &&
+        pickup['latitude'] is num &&
+        pickup['longitude'] is num) {
       pickupAddress = PickupAddress(
+        latitude: (pickup['latitude'] as num).toDouble(),
+        longitude: (pickup['longitude'] as num).toDouble(),
         address: pickup['address']?.toString() ?? '',
         district: pickup['district']?.toString() ?? '',
       );
     }
+
     return UserProfile(
       email: record['email']?.toString() ?? '',
       role: role as String,

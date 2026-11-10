@@ -2,7 +2,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:reciclatru/core/network/api_exception.dart';
 import 'package:reciclatru/core/network/health_api.dart';
+import 'package:reciclatru/core/network/network_providers.dart';
+import 'package:reciclatru/core/session/session_store.dart';
 import 'package:reciclatru/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class _FakeHealthApi implements HealthApi {
   _FakeHealthApi({this.error});
@@ -23,21 +26,34 @@ class _FakeHealthApi implements HealthApi {
 }
 
 Future<void> _pumpApp(WidgetTester tester, HealthApi api) async {
+  SharedPreferences.setMockInitialValues({});
+  final store = SessionStore();
+  await store.save(
+    const AppSession(userId: '1', token: 'token', role: 'NEIGHBOR'),
+  );
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [healthApiProvider.overrideWithValue(api)],
+      overrides: [
+        healthApiProvider.overrideWithValue(api),
+        sessionStoreProvider.overrideWithValue(store),
+      ],
       child: const ReciclaTruApp(),
     ),
   );
 }
 
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('muestra Servidor conectado cuando la API responde', (tester) async {
     await _pumpApp(tester, _FakeHealthApi());
     await tester.pump();
     await tester.pump();
 
-    expect(find.text('Servidor conectado'), findsOneWidget);
+    expect(find.text('Conectado'), findsOneWidget);
   });
 
   testWidgets('muestra el error con Reintentar cuando no hay conexión', (
@@ -57,7 +73,7 @@ void main() {
 
     expect(find.text('No pudimos conectar con la API.'), findsOneWidget);
     expect(find.text('Reintentar'), findsOneWidget);
-    expect(find.text('Servidor conectado'), findsNothing);
+    expect(find.text('Conectado'), findsNothing);
   });
 
   testWidgets('Reintentar vuelve a consultar y muestra Servidor conectado', (
@@ -79,6 +95,6 @@ void main() {
     await tester.pump();
 
     expect(api.calls, 2);
-    expect(find.text('Servidor conectado'), findsOneWidget);
+    expect(find.text('Conectado'), findsOneWidget);
   });
 }
