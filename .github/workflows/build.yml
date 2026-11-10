@@ -1,7 +1,8 @@
 name: Build
 on:
+  workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, feature/release-1]
     paths: ['repositorios/reciclatru-api/**']
   pull_request:
     types: [opened, synchronize, reopened]
