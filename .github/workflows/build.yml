@@ -3,12 +3,17 @@ on:
   push:
     branches:
       - main
+    paths: ['repositorios/reciclatru-api/**']  
   pull_request:
     types: [opened, synchronize, reopened]
+    paths: ['repositorios/reciclatru-api/**']
 jobs:
   sonarqube:
     name: SonarQube
     runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: repositorios/reciclatru-api
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
         with:
