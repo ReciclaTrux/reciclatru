@@ -8,8 +8,14 @@ import 'package:reciclatru/core/design_system/theme/rt_colors.dart';
 import 'package:reciclatru/core/design_system/theme/rt_theme.dart';
 import 'package:reciclatru/core/network/health_api.dart';
 import 'package:reciclatru/main.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  setUp(() {
+    TestWidgetsFlutterBinding.ensureInitialized();
+    SharedPreferences.setMockInitialValues({});
+  });
+
   testWidgets('la app arranca con el tema del sistema', (tester) async {
     await tester.pumpWidget(
       ProviderScope(

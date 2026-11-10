@@ -1,3 +1,4 @@
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,41 +7,59 @@ import '../session/session_store.dart';
 import '../../features/auth/presentation/login_screen.dart';
 import '../../features/auth/presentation/register_screen.dart';
 import '../../features/profile/presentation/complete_profile_screen.dart';
+import '../../features/profile/presentation/profile_screen.dart';
+import '../../features/profile/presentation/location_picker_screen.dart';
+import '../../features/profile/presentation/location_confirmation_screen.dart';
+import '../../features/profile/domain/user_profile.dart';
 import '../../main.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final sessionStore = ref.watch(sessionStoreProvider);
 
-  return GoRouter(
-    initialLocation: '/',
+  final router = GoRouter(
+    initialLocation: '/login',
     refreshListenable: sessionStore,
     redirect: (context, state) {
       final session = sessionStore.currentSession;
       final needsProfile = sessionStore.needsProfile == true;
       final path = state.uri.path;
-      final isAuthOrWelcome = path == '/' || path == '/login' || path == '/register';
 
+      final isAuthRoute = path == '/login' || path == '/register';
+      final isPickupRoute =
+          path == '/pickup-location' || path == '/pickup-location/confirm';
+
+      // Sin sesión solo puede estar en login o registro.
       if (session == null) {
-        if (!isAuthOrWelcome) return '/';
+        if (!isAuthRoute) return '/login';
         return null;
       }
 
+      // La ubicación solo está disponible para vecinos.
+      if (isPickupRoute && session.role != 'NEIGHBOR') {
+        return needsProfile ? '/complete-profile' : '/home';
+      }
+
+      // P07 (confirmación de ubicación) necesita recibir las coordenadas desde P06.
+      if (path == '/pickup-location/confirm' && state.extra is! PickupAddress) {
+        return '/pickup-location';
+      }
+
+      // HU-03: si falta completar perfil, no puede ir a home ni perfil.
       if (needsProfile) {
-        if (path != '/complete-profile') return '/complete-profile';
+        if (path != '/complete-profile' && !isPickupRoute) {
+          return '/complete-profile';
+        }
         return null;
       }
 
-      if (isAuthOrWelcome || path == '/complete-profile') {
+      // Usuario autenticado con perfil completo que intenta entrar a auth o complete-profile.
+      if (isAuthRoute || path == '/' || path == '/complete-profile') {
         return '/home';
       }
 
       return null;
     },
     routes: [
-      GoRoute(
-        path: '/',
-        builder: (context, state) => const WelcomeScreen(),
-      ),
       GoRoute(
         path: '/login',
         builder: (context, state) {
@@ -57,10 +76,25 @@ final routerProvider = Provider<GoRouter>((ref) {
         builder: (context, state) => CompleteProfileScreen(
           onCompleted: () {
             sessionStore.markProfileCompleted();
+            context.go('/home');
           },
           onChoosePickupPoint: () async {
-            // HU-04 map picker placeholder
+            await context.push<bool>('/pickup-location');
           },
+        ),
+      ),
+      GoRoute(
+        path: '/pickup-location',
+        builder: (context, state) => LocationPickerScreen(
+          initialPoint: state.extra is PickupAddress
+              ? state.extra as PickupAddress
+              : null,
+        ),
+      ),
+      GoRoute(
+        path: '/pickup-location/confirm',
+        builder: (context, state) => LocationConfirmationScreen(
+          point: state.extra as PickupAddress,
         ),
       ),
       GoRoute(
@@ -69,8 +103,11 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) => const ProfilePlaceholder(),
+        builder: (context, state) => const ProfileScreen(),
       ),
     ],
   );
+
+  ref.onDispose(router.dispose);
+  return router;
 });

@@ -1,19 +1,20 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../../../core/design_system/atoms/rt_button.dart';
 import '../../../core/design_system/atoms/rt_text_field.dart';
 import '../../../core/design_system/molecules/rt_inline_alert.dart';
-import '../../../core/design_system/organisms/rt_top_app_bar.dart';
 import '../../../core/design_system/theme/rt_radii.dart';
 import '../../../core/design_system/theme/rt_spacing.dart';
 import 'auth_provider.dart';
 
-/// Traducción de LoginContent / LoginViewModel de Android HU-02.
-/// Textos, orden y botón fijo inferior siguen LoginScreen.kt.
+/// Traducción exacta de LoginContent / LoginViewModel de Android (HU-02).
+/// Mantiene la maquetación, textos, ícono, alertas y testTags de LoginScreen.kt.
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key, this.sessionExpired = false});
   final bool sessionExpired;
+
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
@@ -44,7 +45,13 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     if (emailError != null || passwordError != null) return;
     setState(() => _submitting = true);
     try {
-      await ref.read(authRepositoryProvider).login(email, _password);
+      final result = await ref.read(authRepositoryProvider).login(email, _password);
+      if (!mounted) return;
+      if (!result.profileComplete) {
+        context.go('/complete-profile');
+      } else {
+        context.go('/home');
+      }
     } catch (error) {
       if (!mounted) return;
       setState(() => _generalError = error.toString().replaceFirst('Exception: ', ''));
@@ -58,16 +65,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
     final theme = Theme.of(context);
     return Scaffold(
       backgroundColor: theme.colorScheme.surface,
-      appBar: PreferredSize(
-        preferredSize: const Size.fromHeight(RtSize.appbarHeight + RtStroke.divider),
-        child: SafeArea(
-          bottom: false,
-          child: RtTopAppBar(
-            title: 'Iniciar sesión',
-            onBack: () => context.canPop() ? context.pop() : context.go('/'),
-          ),
-        ),
-      ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Padding(
@@ -77,19 +74,26 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               RtButton(
+                key: const Key('btn_ingresar'),
                 text: _submitting ? 'Ingresando…' : 'Ingresar',
                 onClick: _submit,
                 loading: _submitting,
                 fullWidth: true,
               ),
+              const SizedBox(height: RtSpacing.s1),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Flexible(child: Text('¿Aún no tienes cuenta?',
-                    style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant))),
+                  Text(
+                    '¿Aún no tienes cuenta?',
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
                   RtButton(
+                    key: const Key('btn_ir_a_registro'),
                     text: 'Regístrate',
-                    onClick: () => context.push('/register'),
+                    onClick: () => context.go('/register'),
                     variant: RtButtonVariant.text,
                     size: RtButtonSize.compact,
                     enabled: !_submitting,
@@ -114,23 +118,49 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                   color: theme.colorScheme.primary,
                   borderRadius: BorderRadius.circular(RtRadii.md),
                 ),
-                child: Icon(Icons.recycling_rounded, color: theme.colorScheme.onPrimary),
+                child: Icon(
+                  Icons.recycling_rounded,
+                  color: theme.colorScheme.onPrimary,
+                  size: 28,
+                ),
               ),
               const SizedBox(height: RtSpacing.s4),
-              Text('Hola de nuevo', style: theme.textTheme.headlineSmall),
+              Text(
+                'ReciclaTru',
+                style: theme.textTheme.labelLarge?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
               const SizedBox(height: RtSpacing.s1),
-              Text('Ingresa con tu correo y contraseña.',
-                style: theme.textTheme.bodyLarge?.copyWith(color: theme.colorScheme.onSurfaceVariant)),
+              Text(
+                'Hola de nuevo',
+                style: theme.textTheme.headlineSmall,
+              ),
+              const SizedBox(height: RtSpacing.s1),
+              Text(
+                'Ingresa con tu correo y contraseña.',
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
               const SizedBox(height: RtSpacing.s4),
               if (_generalError != null) ...[
-                RtInlineAlert(tone: RtInlineAlertTone.error, message: _generalError!),
+                RtInlineAlert(
+                  key: const Key('alert_login_error'),
+                  tone: RtInlineAlertTone.error,
+                  message: _generalError!,
+                ),
                 const SizedBox(height: RtSpacing.s4),
               ] else if (widget.sessionExpired) ...[
-                const RtInlineAlert(tone: RtInlineAlertTone.info,
-                  message: 'Tu sesión expiró. Ingresa de nuevo para continuar.'),
+                const RtInlineAlert(
+                  key: Key('alert_sesion_expirada'),
+                  tone: RtInlineAlertTone.info,
+                  message: 'Tu sesión expiró. Ingresa de nuevo para continuar.',
+                ),
                 const SizedBox(height: RtSpacing.s4),
               ],
               RtTextField(
+                key: const Key('input_correo'),
                 label: 'Correo electrónico',
                 value: _email,
                 onValueChange: (value) => setState(() {
@@ -145,6 +175,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               const SizedBox(height: RtSpacing.s4),
               RtTextField(
+                key: const Key('input_contrasena'),
                 label: 'Contraseña',
                 value: _password,
                 onValueChange: (value) => setState(() {
@@ -157,9 +188,14 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 leadingIcon: Icons.lock_rounded,
                 keyboardType: TextInputType.visiblePassword,
                 obscureText: !_passwordVisible,
-                trailingIcon: _passwordVisible ? Icons.visibility_off_rounded : Icons.visibility_rounded,
-                trailingIconDescription: _passwordVisible ? 'Ocultar contraseña' : 'Mostrar contraseña',
-                onTrailingIconClick: () => setState(() => _passwordVisible = !_passwordVisible),
+                trailingIcon: _passwordVisible
+                    ? Icons.visibility_off_rounded
+                    : Icons.visibility_rounded,
+                trailingIconDescription: _passwordVisible
+                    ? 'Ocultar contraseña'
+                    : 'Mostrar contraseña',
+                onTrailingIconClick: () =>
+                    setState(() => _passwordVisible = !_passwordVisible),
               ),
             ],
           ),

@@ -6,15 +6,12 @@ import 'package:maplibre_gl/maplibre_gl.dart';
 import 'core/design_system/atoms/rt_button.dart';
 import 'core/design_system/atoms/rt_spinner.dart';
 import 'core/design_system/molecules/rt_inline_alert.dart';
-import 'core/design_system/theme/rt_colors.dart';
 import 'core/design_system/theme/rt_spacing.dart';
 import 'core/design_system/theme/rt_theme.dart';
 import 'core/network/api_exception.dart';
 import 'core/network/backend_status_notifier.dart';
 import 'core/network/network_providers.dart';
 import 'core/router/app_router.dart';
-import 'core/session/session_store.dart';
-import 'features/auth/presentation/auth_provider.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -47,71 +44,46 @@ class ReciclaTruApp extends ConsumerWidget {
   }
 }
 
-class WelcomeScreen extends ConsumerWidget {
-  const WelcomeScreen({super.key});
+// ==========================================================
+// PANTALLA PRINCIPAL (HomePlaceholder de Android AppNavHost.kt)
+// ==========================================================
+
+class HomePlaceholder extends ConsumerWidget {
+  const HomePlaceholder({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final extra = theme.extension<RtExtraColors>()!;
+    final sessionStore = ref.watch(sessionStoreProvider);
+    final isNeighbor = sessionStore.currentSession?.role == 'NEIGHBOR';
     final status = ref.watch(backendStatusProvider);
+    final theme = Theme.of(context);
 
     return Scaffold(
+      backgroundColor: theme.colorScheme.surface,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(RtSpacing.s4),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 30),
-                Icon(
-                  Icons.recycling,
-                  size: 90,
-                  color: extra.ods12,
-                ),
-                const SizedBox(height: 20),
                 Text(
                   'ReciclaTru',
-                  textAlign: TextAlign.center,
                   style: theme.textTheme.headlineMedium?.copyWith(
-                    color: extra.ods12,
-                    fontWeight: FontWeight.bold,
+                    color: theme.colorScheme.primary,
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: RtSpacing.s2),
                 Text(
-                  'Dale una segunda oportunidad a los materiales '
-                  'y contribuye a un futuro más sostenible.',
+                  'Conectamos a los vecinos de Trujillo con recicladores.',
                   textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-                const SizedBox(height: 35),
-                RtButton(
-                  text: 'Iniciar sesión',
-                  fullWidth: true,
-                  onClick: () {
-                    context.go('/login');
-                  },
-                ),
-                const SizedBox(height: 16),
-                RtButton(
-                  text: 'Registrarme',
-                  fullWidth: true,
-                  onClick: () {
-                    context.go('/register');
-                  },
-                ),
-                const SizedBox(height: 35),
-                const Divider(),
-                const SizedBox(height: 12),
-                Text(
-                  'Estado del servidor',
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.titleSmall,
-                ),
-                const SizedBox(height: 12),
+                const SizedBox(height: RtSpacing.s4),
+                // Backend Health Status
                 status.when(
                   loading: () => const Center(
                     child: RtSpinner(
@@ -121,7 +93,7 @@ class WelcomeScreen extends ConsumerWidget {
                   data: (_) => const RtInlineAlert(
                     key: Key('alert_conexion_backend'),
                     tone: RtInlineAlertTone.success,
-                    message: 'Servidor conectado',
+                    message: 'Conectado',
                   ),
                   error: (error, _) => RtInlineAlert(
                     key: const Key('alert_conexion_backend'),
@@ -130,12 +102,36 @@ class WelcomeScreen extends ConsumerWidget {
                         ? error.message
                         : 'No pudimos conectar con el servidor.',
                     actionLabel: 'Reintentar',
-                    onAction: ref
-                        .read(backendStatusProvider.notifier)
-                        .retry,
+                    onAction: ref.read(backendStatusProvider.notifier).retry,
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: RtSpacing.s4),
+                const RtInlineAlert(
+                  tone: RtInlineAlertTone.info,
+                  message:
+                      'Esta es la base de la app. Los pedidos llegan en el Sprint 2.',
+                ),
+                const SizedBox(height: RtSpacing.s4),
+                if (isNeighbor) ...[
+                  RtButton(
+                    key: const Key('btn_abrir_ubicacion'),
+                    text: 'Marcar punto de recojo',
+                    fullWidth: true,
+                    onClick: () {
+                      context.push('/pickup-location');
+                    },
+                  ),
+                  const SizedBox(height: RtSpacing.s4),
+                ],
+                RtButton(
+                  key: const Key('btn_abrir_perfil'),
+                  text: 'Mi perfil',
+                  fullWidth: true,
+                  variant: RtButtonVariant.secondary,
+                  onClick: () {
+                    context.push('/profile');
+                  },
+                ),
               ],
             ),
           ),
@@ -143,64 +139,4 @@ class WelcomeScreen extends ConsumerWidget {
       ),
     );
   }
-}
-
-class HomePlaceholder extends ConsumerWidget {
-  const HomePlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        body: SafeArea(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(RtSpacing.s4),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'ReciclaTru',
-                    style: Theme.of(context).textTheme.headlineMedium,
-                  ),
-                  const SizedBox(height: RtSpacing.s4),
-                  const Text(
-                    'Conectamos a los vecinos de Trujillo con recicladores.',
-                  ),
-                  const SizedBox(height: RtSpacing.s4),
-                  const Text(
-                    'Esta es la base de la app. Los pedidos llegan en el Sprint 2.',
-                  ),
-                  const SizedBox(height: RtSpacing.s4),
-                  RtButton(
-                    text: 'Mi perfil',
-                    fullWidth: true,
-                    onClick: () => context.go('/profile'),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-}
-
-class ProfilePlaceholder extends ConsumerWidget {
-  const ProfilePlaceholder({super.key});
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) => Scaffold(
-        appBar: AppBar(title: const Text('Mi perfil')),
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.all(RtSpacing.s4),
-            child: RtButton(
-              text: 'Cerrar sesión',
-              fullWidth: true,
-              onClick: () async {
-                await ref.read(authRepositoryProvider).logout();
-                // go_router redirect automáticamente redirige a / o /login
-              },
-            ),
-          ),
-        ),
-      );
 }
