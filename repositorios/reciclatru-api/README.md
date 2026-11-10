@@ -6,6 +6,7 @@ API REST del Release 1 de ReciclaTru: conecta vecinos y recicladores de Huanchac
 - **Base de datos:** PostgreSQL en Neon (esquema y migraciones en el repositorio `reciclatru-db`, con Flyway)
 - **Fotos:** bucket privado S3-compatible (Neon Object Storage), URLs firmadas de 5 minutos
 - **Despliegue:** Render (Blueprint `render.yaml`)
+- **Observabilidad:** Graphana
 
 ## Arquitectura
 
