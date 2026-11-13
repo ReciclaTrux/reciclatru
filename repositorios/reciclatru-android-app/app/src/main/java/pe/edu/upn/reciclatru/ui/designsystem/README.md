@@ -116,10 +116,10 @@ segunda tabla.
 | organismo | `RtAcceptanceCard` | pendiente | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
 | organismo | `RtAcceptedOrderCard` | pendiente | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
 | organismo | `RtActionBar` | listo | `ui/designsystem/organisms/RtActionBar.kt` |
-| organismo | `RtAvailableOrderCard` | pendiente | `ui/designsystem/organisms/RtAvailableOrderCard.kt` |
+| organismo | `RtAvailableOrderCard` | listo | `ui/designsystem/organisms/RtAvailableOrderCard.kt` |
 | organismo | `RtBottomNav` | listo | `ui/designsystem/organisms/RtBottomNav.kt` |
 | organismo | `RtItemListEditor` | listo | `ui/designsystem/organisms/RtItemListEditor.kt` |
-| organismo | `RtLocationPrompt` | pendiente | `ui/designsystem/organisms/RtLocationPrompt.kt` |
+| organismo | `RtLocationPrompt` | listo | `ui/designsystem/organisms/RtLocationPrompt.kt` |
 | organismo | `RtMapPicker` | listo | `ui/designsystem/organisms/RtMapPicker.kt` |
 | organismo | `RtOrderCard` | listo | `ui/designsystem/organisms/RtOrderCard.kt` |
 | organismo | `RtPhotoGallery` | pendiente | `ui/designsystem/organisms/RtPhotoGallery.kt` |

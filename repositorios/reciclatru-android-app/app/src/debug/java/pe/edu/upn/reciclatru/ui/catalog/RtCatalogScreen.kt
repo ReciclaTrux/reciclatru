@@ -84,8 +84,10 @@ import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbar
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtTab
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtTabs
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtActionBar
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtAvailableOrderCard
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEditor
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEntry
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtLocationPrompt
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCard
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCardFooter
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtAppBarAction
@@ -746,6 +748,35 @@ private fun EmptyStateCatalog() {
 }
 
 @Composable
+private fun AvailableOrderCardCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtAvailableOrderCard")
+        RtAvailableOrderCard(
+            zone = "Víctor Larco Herrera",
+            weight = "14.5 kg",
+            items = "3 ítems",
+            distance = "a 1.2 km",
+            timeAgo = "hace 2 h",
+        )
+        RtAvailableOrderCard(
+            zone = "Trujillo",
+            weight = "4 kg",
+            items = "1 ítem",
+            timeAgo = "hace 20 min",
+            alreadyAccepted = true,
+        )
+    }
+}
+
+@Composable
+private fun LocationPromptCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtLocationPrompt")
+        RtLocationPrompt(onContinue = {}, onDismiss = {})
+    }
+}
+
+@Composable
 private fun OrderCardCatalog() {
     Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
         ComponentTitle(text = "RtOrderCard")
@@ -925,6 +956,8 @@ private fun OrganismsSection() {
         MapPickerCatalog()
         ItemListEditorCatalog()
         OrderCardCatalog()
+        AvailableOrderCardCatalog()
+        LocationPromptCatalog()
     }
 }
 
