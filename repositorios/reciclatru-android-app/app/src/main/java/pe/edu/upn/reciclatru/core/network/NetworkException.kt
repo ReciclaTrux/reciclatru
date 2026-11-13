@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.core.network
 
+import com.google.gson.JsonParser
 import java.io.IOException
 import java.net.SocketTimeoutException
 import java.net.UnknownHostException
@@ -26,6 +27,7 @@ class NetworkException(
     val kind: NetworkErrorKind,
     override val message: String,
     val statusCode: Int? = null,
+    val code: String? = null,
     cause: Throwable? = null,
 ) : IOException(message, cause)
 
@@ -34,47 +36,58 @@ private const val TimeoutMessage = "La conexión tardó demasiado. Inténtalo de
 private const val ServerMessage = "Tuvimos un problema en el servidor. Inténtalo de nuevo en un momento."
 private const val UnknownMessage = "No pudimos completar la operación. Inténtalo de nuevo."
 
-private fun httpError(statusCode: Int): NetworkException = when (statusCode) {
+private fun httpError(statusCode: Int, code: String?): NetworkException = when (statusCode) {
     401 -> NetworkException(
         kind = NetworkErrorKind.Unauthorized,
         message = "Tu sesión venció. Vuelve a ingresar.",
         statusCode = statusCode,
+        code = code,
     )
     403 -> NetworkException(
         kind = NetworkErrorKind.Forbidden,
         message = "No tienes permiso para hacer esto.",
         statusCode = statusCode,
+        code = code,
     )
     404 -> NetworkException(
         kind = NetworkErrorKind.NotFound,
         message = "No encontramos la información que buscabas.",
         statusCode = statusCode,
+        code = code,
     )
     409 -> NetworkException(
         kind = NetworkErrorKind.Conflict,
         message = "Ese dato ya está en uso. Revisa e inténtalo de nuevo.",
         statusCode = statusCode,
+        code = code,
     )
     in 500..599 -> NetworkException(
         kind = NetworkErrorKind.Server,
         message = ServerMessage,
         statusCode = statusCode,
+        code = code,
     )
     else -> NetworkException(
         kind = NetworkErrorKind.Unknown,
         message = UnknownMessage,
         statusCode = statusCode,
+        code = code,
     )
 }
 
 private fun Throwable.toNetworkException(): NetworkException = when (this) {
     is NetworkException -> this
-    is HttpException -> httpError(code())
+    is HttpException -> httpError(code(), problemCode())
     is SocketTimeoutException -> NetworkException(NetworkErrorKind.Timeout, TimeoutMessage, cause = this)
     is UnknownHostException -> NetworkException(NetworkErrorKind.NoConnection, NoConnectionMessage, cause = this)
     is IOException -> NetworkException(NetworkErrorKind.NoConnection, NoConnectionMessage, cause = this)
     else -> NetworkException(NetworkErrorKind.Unknown, UnknownMessage, cause = this)
 }
+
+private fun HttpException.problemCode(): String? = runCatching {
+    val body = response()?.errorBody()?.string().orEmpty()
+    JsonParser.parseString(body).asJsonObject.get("code")?.asString
+}.getOrNull()
 
 /**
  * Envuelve una llamada a la API: devuelve `Result.success` o un [NetworkException] ya
