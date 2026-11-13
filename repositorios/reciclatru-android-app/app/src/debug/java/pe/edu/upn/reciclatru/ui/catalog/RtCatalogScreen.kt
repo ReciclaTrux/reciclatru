@@ -27,10 +27,13 @@ import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Directions
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Group
+import androidx.compose.material.icons.rounded.Inventory2
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Mail
 import androidx.compose.material.icons.rounded.Person
 import androidx.compose.material.icons.rounded.PhoneIphone
+import androidx.compose.material.icons.rounded.Recycling
+import androidx.compose.material.icons.rounded.Scale
 import androidx.compose.material.icons.rounded.TravelExplore
 import androidx.compose.material.icons.rounded.Visibility
 import androidx.compose.material.icons.rounded.VisibilityOff
@@ -61,21 +64,30 @@ import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtIconButton
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtIconButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinnerSize
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtOrderStatus
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtStatusChip
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtTextField
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtConfirmDialog
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtContactRow
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtEmptyState
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorKind
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorState
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtItemRow
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMeta
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMetaRow
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRole
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRoleSelector
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSearchField
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbar
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtTab
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtTabs
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtActionBar
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEditor
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEntry
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCard
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCardFooter
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtAppBarAction
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNav
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNavItem
@@ -341,6 +353,7 @@ private fun AtomsSection() {
         IconButtonCatalog()
         AvatarCatalog()
         BadgeCatalog()
+        StatusChipCatalog()
     }
 }
 
@@ -541,6 +554,9 @@ private fun MoleculesSection() {
         SearchFieldCatalog()
         ContactRowCatalog()
         ItemRowCatalog()
+        MetaRowCatalog()
+        TabsCatalog()
+        EmptyStateCatalog()
         ConfirmDialogCatalog()
         SnackbarCatalog()
         ErrorStateCatalog()
@@ -676,6 +692,77 @@ private fun SearchFieldCatalog() {
                 "la feature simula el geocoder después de 300 ms.",
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun StatusChipCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtStatusChip")
+        RtOrderStatus.entries.forEach { status -> RtStatusChip(status = status) }
+    }
+}
+
+@Composable
+private fun MetaRowCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtMetaRow")
+        RtMetaRow(
+            items = listOf(
+                RtMeta(Icons.Rounded.Inventory2, "3 ítems"),
+                RtMeta(Icons.Rounded.Scale, "14.5 kg"),
+            ),
+        )
+    }
+}
+
+@Composable
+private fun TabsCatalog() {
+    var selected by remember { mutableStateOf(0) }
+
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtTabs")
+        RtTabs(
+            tabs = listOf(RtTab("Activos", count = 3), RtTab("Historial")),
+            selectedIndex = selected,
+            onSelect = { selected = it },
+        )
+    }
+}
+
+@Composable
+private fun EmptyStateCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtEmptyState")
+        RtEmptyState(
+            icon = Icons.Rounded.Recycling,
+            title = "Aún no publicaste pedidos",
+            message = "Publica el material que tienes y un reciclador de tu zona lo recogerá.",
+            actionLabel = "Publicar pedido",
+            onAction = {},
+        )
+    }
+}
+
+@Composable
+private fun OrderCardCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtOrderCard")
+        RtOrderCard(
+            title = "Hoy, 9:15",
+            status = RtOrderStatus.Pending,
+            items = "3 ítems",
+            weight = "14.5 kg",
+            onClick = {},
+            footer = RtOrderCardFooter(Icons.Rounded.Group, "3 aceptaciones", "Elegir reciclador"),
+        )
+        RtOrderCard(
+            title = "3 nov",
+            status = RtOrderStatus.Collected,
+            items = "2 ítems",
+            weight = "11 kg",
+            onClick = {},
         )
     }
 }
@@ -837,6 +924,7 @@ private fun OrganismsSection() {
         BottomNavCatalog()
         MapPickerCatalog()
         ItemListEditorCatalog()
+        OrderCardCatalog()
     }
 }
 

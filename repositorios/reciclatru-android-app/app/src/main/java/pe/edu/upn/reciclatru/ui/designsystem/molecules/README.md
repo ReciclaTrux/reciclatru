@@ -8,16 +8,16 @@ estén en esta lista.
 - `RtAddressBlock` → `RtAddressBlock.kt` — pendiente (lote 4)
 - `RtConfirmDialog` → `RtConfirmDialog.kt` — implementado (lote 2)
 - `RtContactRow` → `RtContactRow.kt` — implementado (lote 2)
-- `RtEmptyState` → `RtEmptyState.kt` — pendiente (lote 3)
+- `RtEmptyState` → `RtEmptyState.kt` — implementado (lote 3)
 - `RtErrorState` → `RtErrorState.kt` — implementado (lote 2)
 - `RtInlineAlert` → `RtInlineAlert.kt` — implementado (lote 2)
 - `RtItemRow` → `RtItemRow.kt` — implementado (lote 3)
-- `RtMetaRow` → `RtMetaRow.kt` — pendiente (lote 3)
+- `RtMetaRow` → `RtMetaRow.kt` — implementado (lote 3)
 - `RtPhotoPicker` → `RtPhotoPicker.kt` — pendiente (lote 3)
 - `RtRoleSelector` → `RtRoleSelector.kt` — implementado (lote 2)
 - `RtSearchField` → `RtSearchField.kt` — implementado (lote 2)
 - `RtSnackbar` → `RtSnackbar.kt` — implementado (lote 2)
-- `RtTabs` → `RtTabs.kt` — pendiente (lote 3)
+- `RtTabs` → `RtTabs.kt` — implementado (lote 3)
 
 Se implementan por sprint, antes de que empiece, según las HU que lo usan (inventario por
 HU en el sistema). Orden: tema → átomos → moléculas → organismos.

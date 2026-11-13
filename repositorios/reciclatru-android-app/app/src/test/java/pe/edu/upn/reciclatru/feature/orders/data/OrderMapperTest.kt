@@ -6,6 +6,8 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
+import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
+import java.time.Instant
 
 class OrderMapperTest {
 
@@ -51,5 +53,49 @@ class OrderMapperTest {
     @Test
     fun `una respuesta sin registro no se convierte`() {
         assertNull(gson.fromJson("{}", ServicingOrderOutputDto::class.java).toOrder())
+    }
+
+    @Test
+    fun `la lista de mis pedidos se convierte con su estado y fecha`() {
+        val json = """
+            {
+              "items": [
+                {
+                  "id": "0f8a3c52",
+                  "status": "PENDING",
+                  "itemCount": 3,
+                  "totalWeightKg": 13.7,
+                  "acceptanceCount": 2,
+                  "chosenRecyclerName": null,
+                  "createdAt": "2026-10-26T14:05:00Z"
+                },
+                {
+                  "id": "5b2e9d41",
+                  "status": "CONFIRMED",
+                  "itemCount": 2,
+                  "totalWeightKg": 11.5,
+                  "acceptanceCount": null,
+                  "chosenRecyclerName": "Jorge Luis Mendoza Ruiz",
+                  "createdAt": "2026-10-23T14:10:00Z"
+                }
+              ],
+              "nextCursor": "abc"
+            }
+        """.trimIndent()
+
+        val page = gson.fromJson(json, ServicingOrderListOutputDto::class.java).toOrdersPage()
+
+        assertEquals("abc", page.nextCursor)
+        assertEquals(2, page.items.size)
+        assertEquals(OrderStatus.Pending, page.items[0].status)
+        assertEquals(2, page.items[0].acceptanceCount)
+        assertEquals(Instant.parse("2026-10-26T14:05:00Z"), page.items[0].createdAt)
+        assertEquals("Jorge Luis Mendoza Ruiz", page.items[1].chosenRecyclerName)
+    }
+
+    @Test
+    fun `las pestanas viajan como ACTIVE e HISTORY`() {
+        assertEquals("ACTIVE", OrdersTab.Active.toQuery())
+        assertEquals("HISTORY", OrdersTab.History.toQuery())
     }
 }

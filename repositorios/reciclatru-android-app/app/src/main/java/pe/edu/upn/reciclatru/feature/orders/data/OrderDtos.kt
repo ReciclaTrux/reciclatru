@@ -21,4 +21,22 @@ data class ServicingOrderRecordDto(
     @SerializedName("status") val status: String? = null,
     @SerializedName("items") val items: List<OrderItemDto>? = null,
     @SerializedName("totalWeightKg") val totalWeightKg: Double? = null,
+    @SerializedName("acceptanceCount") val acceptanceCount: Int? = null,
+    @SerializedName("chosenRecyclerName") val chosenRecyclerName: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null,
+)
+
+data class ServicingOrderListOutputDto(
+    @SerializedName("items") val items: List<OrderSummaryDto>? = null,
+    @SerializedName("nextCursor") val nextCursor: String? = null,
+)
+
+data class OrderSummaryDto(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("itemCount") val itemCount: Int? = null,
+    @SerializedName("totalWeightKg") val totalWeightKg: Double? = null,
+    @SerializedName("acceptanceCount") val acceptanceCount: Int? = null,
+    @SerializedName("chosenRecyclerName") val chosenRecyclerName: String? = null,
+    @SerializedName("createdAt") val createdAt: String? = null,
 )

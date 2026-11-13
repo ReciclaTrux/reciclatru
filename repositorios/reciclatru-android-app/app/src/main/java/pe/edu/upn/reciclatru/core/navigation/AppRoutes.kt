@@ -14,9 +14,13 @@ object AppRoutes {
     const val CompleteProfile = "profile/complete"
     const val Profile = "profile"
     const val CreateOrder = "orders/create"
+    const val OrderIdArg = "orderId"
+    const val OrderDetail = "orders/detail/{orderId}"
     const val OrderPublishedResult = "order_published"
     const val ExpiredArg = "expired"
     const val Login = "auth/login?$ExpiredArg={$ExpiredArg}"
 
     fun login(expired: Boolean = false): String = "auth/login?$ExpiredArg=$expired"
+
+    fun orderDetail(orderId: String): String = "orders/detail/$orderId"
 }

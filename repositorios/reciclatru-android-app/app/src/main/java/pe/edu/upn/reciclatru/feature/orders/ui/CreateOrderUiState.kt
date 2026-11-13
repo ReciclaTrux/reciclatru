@@ -18,4 +18,5 @@ data class CreateOrderUiState(
     val publishError: String? = null,
     val publishing: Boolean = false,
     val published: Boolean = false,
+    val publishedOrderId: String? = null,
 )

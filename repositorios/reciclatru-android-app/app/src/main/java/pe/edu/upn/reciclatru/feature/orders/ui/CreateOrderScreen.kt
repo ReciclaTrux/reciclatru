@@ -39,7 +39,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.theme.RtTheme
 @Composable
 fun CreateOrderScreen(
     onBack: () -> Unit,
-    onPublished: () -> Unit,
+    onPublished: (String) -> Unit,
     onChoosePickupPoint: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: CreateOrderViewModel = hiltViewModel(),
@@ -47,7 +47,7 @@ fun CreateOrderScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
 
     LaunchedEffect(state.published) {
-        if (state.published) onPublished()
+        if (state.published) onPublished(state.publishedOrderId.orEmpty())
     }
     LifecycleResumeEffect(Unit) {
         viewModel.onResume()

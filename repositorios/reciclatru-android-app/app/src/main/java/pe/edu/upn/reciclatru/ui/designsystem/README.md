@@ -99,20 +99,20 @@ segunda tabla.
 | átomo | `RtTextField` | listo | `ui/designsystem/atoms/RtTextField.kt` |
 | átomo | `RtAcceptanceChip` | pendiente | `ui/designsystem/atoms/RtAcceptanceChip.kt` |
 | átomo | `RtPhotoThumb` | pendiente | `ui/designsystem/atoms/RtPhotoThumb.kt` |
-| átomo | `RtStatusChip` | pendiente | `ui/designsystem/atoms/RtStatusChip.kt` |
+| átomo | `RtStatusChip` | listo | `ui/designsystem/atoms/RtStatusChip.kt` |
 | molécula | `RtAddressBlock` | pendiente | `ui/designsystem/molecules/RtAddressBlock.kt` |
 | molécula | `RtConfirmDialog` | listo | `ui/designsystem/molecules/RtConfirmDialog.kt` |
 | molécula | `RtContactRow` | listo | `ui/designsystem/molecules/RtContactRow.kt` |
-| molécula | `RtEmptyState` | pendiente | `ui/designsystem/molecules/RtEmptyState.kt` |
+| molécula | `RtEmptyState` | listo | `ui/designsystem/molecules/RtEmptyState.kt` |
 | molécula | `RtErrorState` | listo | `ui/designsystem/molecules/RtErrorState.kt` |
 | molécula | `RtInlineAlert` | listo | `ui/designsystem/molecules/RtInlineAlert.kt` |
 | molécula | `RtItemRow` | listo | `ui/designsystem/molecules/RtItemRow.kt` |
-| molécula | `RtMetaRow` | pendiente | `ui/designsystem/molecules/RtMetaRow.kt` |
+| molécula | `RtMetaRow` | listo | `ui/designsystem/molecules/RtMetaRow.kt` |
 | molécula | `RtPhotoPicker` | pendiente | `ui/designsystem/molecules/RtPhotoPicker.kt` |
 | molécula | `RtRoleSelector` | listo | `ui/designsystem/molecules/RtRoleSelector.kt` |
 | molécula | `RtSearchField` | listo | `ui/designsystem/molecules/RtSearchField.kt` |
 | molécula | `RtSnackbar` | listo | `ui/designsystem/molecules/RtSnackbar.kt` |
-| molécula | `RtTabs` | pendiente | `ui/designsystem/molecules/RtTabs.kt` |
+| molécula | `RtTabs` | listo | `ui/designsystem/molecules/RtTabs.kt` |
 | organismo | `RtAcceptanceCard` | pendiente | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
 | organismo | `RtAcceptedOrderCard` | pendiente | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
 | organismo | `RtActionBar` | listo | `ui/designsystem/organisms/RtActionBar.kt` |
@@ -121,7 +121,7 @@ segunda tabla.
 | organismo | `RtItemListEditor` | listo | `ui/designsystem/organisms/RtItemListEditor.kt` |
 | organismo | `RtLocationPrompt` | pendiente | `ui/designsystem/organisms/RtLocationPrompt.kt` |
 | organismo | `RtMapPicker` | listo | `ui/designsystem/organisms/RtMapPicker.kt` |
-| organismo | `RtOrderCard` | pendiente | `ui/designsystem/organisms/RtOrderCard.kt` |
+| organismo | `RtOrderCard` | listo | `ui/designsystem/organisms/RtOrderCard.kt` |
 | organismo | `RtPhotoGallery` | pendiente | `ui/designsystem/organisms/RtPhotoGallery.kt` |
 | organismo | `RtTopAppBar` | listo | `ui/designsystem/organisms/RtTopAppBar.kt` |
 

@@ -17,7 +17,9 @@ import pe.edu.upn.reciclatru.feature.orders.domain.CreateOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
+import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersRepository
+import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
 import pe.edu.upn.reciclatru.feature.profile.domain.GetProfileUseCase
 import pe.edu.upn.reciclatru.feature.profile.domain.PickupAddress
 import pe.edu.upn.reciclatru.feature.profile.domain.UserProfile
@@ -169,6 +171,7 @@ class CreateOrderViewModelTest {
         val state = viewModel.uiState.value
         assertFalse(state.publishing)
         assertTrue(state.published)
+        assertEquals("0f8a3c52", state.publishedOrderId)
         assertEquals(
             listOf(OrderItem("Botellas de plástico", 4.5), OrderItem("Cartón", 500.0)),
             orders.lastItems,
@@ -269,6 +272,12 @@ class CreateOrderViewModelTest {
                 totalWeightKg = items.sumOf { it.weightKg },
             )
         }
+
+        override suspend fun getMyOrders(tab: OrdersTab, cursor: String?): OrdersPage =
+            OrdersPage(items = emptyList(), nextCursor = null)
+
+        override suspend fun getOrder(id: String): Order =
+            Order(id = id, status = OrderStatus.Pending, items = emptyList(), totalWeightKg = 0.0)
     }
 
     private class FakeUserProfileRepository(

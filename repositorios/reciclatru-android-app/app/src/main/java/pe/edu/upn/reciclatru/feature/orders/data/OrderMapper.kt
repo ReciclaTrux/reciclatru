@@ -3,6 +3,10 @@ package pe.edu.upn.reciclatru.feature.orders.data
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderSummary
+import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
+import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
+import java.time.Instant
 
 fun List<OrderItem>.toInitiateRequest(): ServicingOrderInitiateRequestDto =
     ServicingOrderInitiateRequestDto(
@@ -19,8 +23,38 @@ fun ServicingOrderOutputDto.toOrder(): Order? {
         status = status,
         items = items,
         totalWeightKg = record.totalWeightKg ?: items.sumOf { it.weightKg },
+        acceptanceCount = record.acceptanceCount,
+        chosenRecyclerName = record.chosenRecyclerName,
+        createdAt = record.createdAt.toInstantOrNull(),
     )
 }
+
+fun OrdersTab.toQuery(): String = when (this) {
+    OrdersTab.Active -> "ACTIVE"
+    OrdersTab.History -> "HISTORY"
+}
+
+fun ServicingOrderListOutputDto.toOrdersPage(): OrdersPage = OrdersPage(
+    items = items.orEmpty().mapNotNull { it.toOrderSummary() },
+    nextCursor = nextCursor,
+)
+
+private fun OrderSummaryDto.toOrderSummary(): OrderSummary? {
+    val id = id ?: return null
+    val status = status.toOrderStatus() ?: return null
+    return OrderSummary(
+        id = id,
+        status = status,
+        itemCount = itemCount ?: 0,
+        totalWeightKg = totalWeightKg ?: 0.0,
+        acceptanceCount = acceptanceCount,
+        chosenRecyclerName = chosenRecyclerName,
+        createdAt = createdAt.toInstantOrNull(),
+    )
+}
+
+private fun String?.toInstantOrNull(): Instant? =
+    this?.let { value -> runCatching { Instant.parse(value) }.getOrNull() }
 
 private fun OrderItemDto.toOrderItem(): OrderItem? {
     val description = description ?: return null
