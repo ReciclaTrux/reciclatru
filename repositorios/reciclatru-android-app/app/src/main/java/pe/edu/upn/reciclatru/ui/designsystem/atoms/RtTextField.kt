@@ -51,6 +51,8 @@ import pe.edu.upn.reciclatru.ui.designsystem.theme.rtColors
  * @param placeholder ejemplo real del dato que se espera, sin "ej.".
  * @param helper ayuda bajo el campo; [error] la reemplaza cuando existe.
  * @param error texto que dice qué corregir, en una línea.
+ * @param isError marca el campo en rojo sin texto propio, cuando el mensaje lo muestra
+ *   el componente que lo contiene (por ejemplo `RtItemRow`).
  * @param leadingIcon ícono al inicio del campo.
  * @param suffix texto fijo al final del valor (por ejemplo "kg").
  * @param maxLength límite de caracteres; muestra el contador a la derecha.
@@ -70,6 +72,7 @@ fun RtTextField(
     placeholder: String? = null,
     helper: String? = null,
     error: String? = null,
+    isError: Boolean = false,
     leadingIcon: ImageVector? = null,
     suffix: String? = null,
     maxLength: Int? = null,
@@ -88,7 +91,7 @@ fun RtTextField(
     val focused by interactionSource.collectIsFocusedAsState()
 
     val borderColor = when {
-        error != null -> colorScheme.error
+        error != null || isError -> colorScheme.error
         readOnly -> colorScheme.outlineVariant
         focused -> colorScheme.primary
         else -> colorScheme.outline

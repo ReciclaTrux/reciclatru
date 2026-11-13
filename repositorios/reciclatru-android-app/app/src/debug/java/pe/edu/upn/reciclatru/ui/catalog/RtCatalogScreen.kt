@@ -68,11 +68,14 @@ import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorKind
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorState
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtItemRow
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRole
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRoleSelector
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSearchField
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbar
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtActionBar
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEditor
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEntry
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtAppBarAction
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNav
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNavItem
@@ -537,6 +540,7 @@ private fun MoleculesSection() {
         InlineAlertCatalog()
         SearchFieldCatalog()
         ContactRowCatalog()
+        ItemRowCatalog()
         ConfirmDialogCatalog()
         SnackbarCatalog()
         ErrorStateCatalog()
@@ -677,6 +681,48 @@ private fun SearchFieldCatalog() {
 }
 
 @Composable
+private fun ItemRowCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtItemRow")
+        RtItemRow(
+            description = "Botellas de plástico",
+            onDescriptionChange = {},
+            weight = "2.5",
+            onWeightChange = {},
+            onRemove = {},
+        )
+        RtItemRow(
+            description = "",
+            onDescriptionChange = {},
+            weight = "600",
+            onWeightChange = {},
+            onRemove = {},
+            error = "Escribe el material y un peso mayor a 0 y hasta 500 kg",
+            descriptionInvalid = true,
+            weightInvalid = true,
+        )
+    }
+}
+
+@Composable
+private fun ItemListEditorCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtItemListEditor")
+        RtItemListEditor(
+            items = listOf(
+                RtItemListEntry(description = "Botellas de plástico", weight = "2.5"),
+                RtItemListEntry(description = "Cartón", weight = "12"),
+            ),
+            totalWeight = "14.5 kg",
+            onDescriptionChange = { _, _ -> },
+            onWeightChange = { _, _ -> },
+            onRemove = {},
+            onAdd = {},
+        )
+    }
+}
+
+@Composable
 private fun ContactRowCatalog() {
     Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
         ComponentTitle(text = "RtContactRow")
@@ -790,6 +836,7 @@ private fun OrganismsSection() {
         TopAppBarCatalog()
         BottomNavCatalog()
         MapPickerCatalog()
+        ItemListEditorCatalog()
     }
 }
 
