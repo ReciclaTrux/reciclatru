@@ -1,0 +1,11 @@
+package pe.edu.upn.reciclatru.feature.orders.ui
+
+import pe.edu.upn.reciclatru.feature.orders.domain.Order
+
+data class OrderDetailUiState(
+    val loading: Boolean = true,
+    val refreshing: Boolean = false,
+    val order: Order? = null,
+    val loadError: String? = null,
+    val message: String? = null,
+)

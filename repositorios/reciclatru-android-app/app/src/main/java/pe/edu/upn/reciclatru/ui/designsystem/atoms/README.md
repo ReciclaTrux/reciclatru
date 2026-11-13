@@ -12,7 +12,7 @@ estén en esta lista.
 - `RtIconButton` → `RtIconButton.kt` — implementado (lote 1)
 - `RtPhotoThumb` → `RtPhotoThumb.kt` — pendiente (lote 3)
 - `RtSpinner` → `RtSpinner.kt` — implementado (lote 1)
-- `RtStatusChip` → `RtStatusChip.kt` — pendiente (lote 3)
+- `RtStatusChip` → `RtStatusChip.kt` — implementado (lote 3)
 - `RtTextField` → `RtTextField.kt` — implementado (lote 1)
 
 Se implementan por sprint, antes de que empiece, según las HU que lo usan (inventario por

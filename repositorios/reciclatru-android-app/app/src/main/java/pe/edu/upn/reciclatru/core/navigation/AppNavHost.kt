@@ -7,12 +7,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -33,6 +31,8 @@ import pe.edu.upn.reciclatru.feature.auth.ui.LoginScreen
 import pe.edu.upn.reciclatru.feature.auth.ui.LogoutViewModel
 import pe.edu.upn.reciclatru.feature.auth.ui.RegisterScreen
 import pe.edu.upn.reciclatru.feature.orders.ui.CreateOrderScreen
+import pe.edu.upn.reciclatru.feature.orders.ui.MyOrdersScreen
+import pe.edu.upn.reciclatru.feature.orders.ui.OrderDetailScreen
 import pe.edu.upn.reciclatru.feature.profile.ui.CompleteProfileScreen
 import pe.edu.upn.reciclatru.feature.profile.ui.ProfileScreen
 import pe.edu.upn.reciclatru.feature.profile.ui.LocationScreen
@@ -41,7 +41,6 @@ import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
-import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbarHost
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSpacing
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtTheme
 
@@ -114,42 +113,46 @@ fun AppNavHost(
             )
         }
         composable(AppRoutes.Home) { entry ->
-            val healthViewModel: HealthViewModel = hiltViewModel()
-            val healthState by healthViewModel.uiState.collectAsStateWithLifecycle()
-            val orderPublished by entry.savedStateHandle
-                .getStateFlow(AppRoutes.OrderPublishedResult, false)
-                .collectAsStateWithLifecycle()
-            val snackbarHostState = remember { SnackbarHostState() }
-            LaunchedEffect(orderPublished) {
-                if (orderPublished) {
-                    snackbarHostState.showSnackbar("Pedido publicado")
-                    entry.savedStateHandle[AppRoutes.OrderPublishedResult] = false
+            when (role) {
+                UserRole.Neighbor -> {
+                    val publishedOrderId by entry.savedStateHandle
+                        .getStateFlow<String?>(AppRoutes.OrderPublishedResult, null)
+                        .collectAsStateWithLifecycle()
+                    MyOrdersScreen(
+                        publishedOrderId = publishedOrderId,
+                        onOrderPublishedHandled = { entry.savedStateHandle[AppRoutes.OrderPublishedResult] = null },
+                        onPublish = { navController.navigate(AppRoutes.CreateOrder) },
+                        onOpenProfile = { navController.navigate(AppRoutes.Profile) },
+                        onOpenOrder = { orderId -> navController.navigate(AppRoutes.orderDetail(orderId)) },
+                    )
                 }
+                UserRole.Recycler -> {
+                    val healthViewModel: HealthViewModel = hiltViewModel()
+                    val healthState by healthViewModel.uiState.collectAsStateWithLifecycle()
+                    HomePlaceholder(
+                        healthState = healthState,
+                        onRetryHealth = healthViewModel::onRetry,
+                        showPickupLocation = false,
+                        onOpenProfile = { navController.navigate(AppRoutes.Profile) },
+                        onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
+                    )
+                }
+                null -> Box(modifier = Modifier.fillMaxSize())
             }
-            Box(modifier = Modifier.fillMaxSize()) {
-                HomePlaceholder(
-                    healthState = healthState,
-                    onRetryHealth = healthViewModel::onRetry,
-                    showPickupLocation = role == UserRole.Neighbor,
-                    onOpenProfile = { navController.navigate(AppRoutes.Profile) },
-                    onOpenPickupLocation = { navController.navigate(AppRoutes.PickupLocation) },
-                    onOpenCreateOrder = { navController.navigate(AppRoutes.CreateOrder) },
-                )
-                RtSnackbarHost(
-                    hostState = snackbarHostState,
-                    modifier = Modifier
-                        .align(Alignment.BottomCenter)
-                        .safeDrawingPadding(),
-                )
-            }
+        }
+        composable(
+            route = AppRoutes.OrderDetail,
+            arguments = listOf(navArgument(AppRoutes.OrderIdArg) { type = NavType.StringType }),
+        ) {
+            OrderDetailScreen(onBack = { navController.popBackStack() })
         }
         composable(AppRoutes.CreateOrder) {
             CreateOrderScreen(
                 onBack = { navController.popBackStack() },
-                onPublished = {
+                onPublished = { orderId ->
                     navController.previousBackStackEntry
                         ?.savedStateHandle
-                        ?.set(AppRoutes.OrderPublishedResult, true)
+                        ?.set(AppRoutes.OrderPublishedResult, orderId)
                     navController.popBackStack()
                 },
                 onChoosePickupPoint = { navController.navigate(AppRoutes.PickupLocation) },
@@ -199,7 +202,6 @@ private fun HomePlaceholder(
     showPickupLocation: Boolean,
     onOpenProfile: () -> Unit,
     onOpenPickupLocation: () -> Unit,
-    onOpenCreateOrder: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -226,15 +228,8 @@ private fun HomePlaceholder(
         )
         if (showPickupLocation) {
             RtButton(
-                text = "Publicar pedido",
-                onClick = onOpenCreateOrder,
-                fullWidth = true,
-                modifier = Modifier.testTag("btn_abrir_publicar_pedido"),
-            )
-            RtButton(
                 text = "Marcar punto de recojo",
                 onClick = onOpenPickupLocation,
-                variant = RtButtonVariant.Secondary,
                 fullWidth = true,
                 modifier = Modifier.testTag("btn_abrir_ubicacion"),
             )
@@ -282,7 +277,6 @@ private fun HomePlaceholderPreview() {
                 showPickupLocation = true,
                 onOpenProfile = {},
                 onOpenPickupLocation = {},
-                onOpenCreateOrder = {},
             )
         }
     }

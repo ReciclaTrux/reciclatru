@@ -95,8 +95,8 @@ class CreateOrderViewModel @Inject constructor(
         _uiState.update { it.copy(publishing = true, publishError = null, itemsError = null) }
         viewModelScope.launch {
             try {
-                createOrder(orderItems)
-                _uiState.update { it.copy(publishing = false, published = true) }
+                val order = createOrder(orderItems)
+                _uiState.update { it.copy(publishing = false, published = true, publishedOrderId = order.id) }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
