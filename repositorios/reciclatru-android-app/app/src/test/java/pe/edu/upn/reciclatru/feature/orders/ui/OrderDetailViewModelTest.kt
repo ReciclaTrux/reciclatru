@@ -17,10 +17,13 @@ import pe.edu.upn.reciclatru.feature.orders.domain.CancelOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.GetOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderPhoto
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersRepository
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
+import pe.edu.upn.reciclatru.feature.orders.domain.PendingPhotosStore
+import pe.edu.upn.reciclatru.feature.orders.domain.UploadOrderPhotosUseCase
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OrderDetailViewModelTest {
@@ -132,10 +135,58 @@ class OrderDetailViewModelTest {
         assertFalse(viewModel.uiState.value.cancelDialogVisible)
     }
 
-    private fun createViewModel(repository: OrdersRepository) = OrderDetailViewModel(
+    @Test
+    fun `si hay fotos sin subir las muestra como pendientes`() = runTest(mainDispatcherRule.testDispatcher) {
+        val pendingPhotos = FakePendingPhotosStore().apply { put("p1", listOf("foto-1", "foto-2")) }
+        val viewModel = createViewModel(FakeOrdersRepository(), pendingPhotos)
+
+        advanceUntilIdle()
+
+        assertEquals(2, viewModel.uiState.value.pendingPhotoCount)
+    }
+
+    @Test
+    fun `reintentar sube las fotos pendientes y recarga el pedido`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository()
+        val pendingPhotos = FakePendingPhotosStore().apply { put("p1", listOf("foto-1")) }
+        val viewModel = createViewModel(repository, pendingPhotos)
+        advanceUntilIdle()
+
+        viewModel.onRetryPhotos()
+        assertTrue(viewModel.uiState.value.uploadingPhotos)
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertFalse(state.uploadingPhotos)
+        assertEquals(0, state.pendingPhotoCount)
+        assertEquals("Fotos subidas", state.message)
+        assertEquals(listOf("foto-1"), repository.uploadedPhotos)
+        assertEquals(2, repository.getCalls)
+    }
+
+    @Test
+    fun `si el reintento falla las fotos siguen pendientes`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(uploadError = noConnection())
+        val pendingPhotos = FakePendingPhotosStore().apply { put("p1", listOf("foto-1")) }
+        val viewModel = createViewModel(repository, pendingPhotos)
+        advanceUntilIdle()
+
+        viewModel.onRetryPhotos()
+        advanceUntilIdle()
+
+        assertEquals(1, viewModel.uiState.value.pendingPhotoCount)
+        assertEquals("No pudimos subir las fotos. Inténtalo de nuevo.", viewModel.uiState.value.message)
+    }
+
+    private fun createViewModel(
+        repository: OrdersRepository,
+        pendingPhotos: PendingPhotosStore = FakePendingPhotosStore(),
+    ) = OrderDetailViewModel(
         savedStateHandle = SavedStateHandle(mapOf(OrderDetailViewModel.OrderIdArg to "p1")),
         getOrder = GetOrderUseCase(repository),
         cancelOrder = CancelOrderUseCase(repository),
+        uploadPhotos = UploadOrderPhotosUseCase(repository, pendingPhotos),
+        pendingPhotos = pendingPhotos,
     )
 
     private fun noConnection() = NetworkException(
@@ -147,7 +198,9 @@ class OrderDetailViewModelTest {
         private val status: OrderStatus = OrderStatus.Pending,
         private val getError: Exception? = null,
         private val cancelError: Exception? = null,
+        private val uploadError: Exception? = null,
     ) : OrdersRepository {
+        val uploadedPhotos = mutableListOf<String>()
         var getCalls = 0
         var cancelCalls = 0
 
@@ -164,6 +217,12 @@ class OrderDetailViewModelTest {
         }
 
         override suspend fun createOrder(items: List<OrderItem>): Order = order("new", OrderStatus.Pending)
+
+        override suspend fun uploadPhoto(orderId: String, photo: String): OrderPhoto {
+            uploadError?.let { throw it }
+            uploadedPhotos += photo
+            return OrderPhoto(id = photo, url = photo)
+        }
 
         override suspend fun getMyOrders(tab: OrdersTab, cursor: String?): OrdersPage =
             OrdersPage(items = emptyList(), nextCursor = null)

@@ -8,7 +8,7 @@ import javax.inject.Singleton
 
 @Singleton
 class SharedPrefsLocationPromptStore @Inject constructor(
-    @param:ApplicationContext context: Context,
+    @ApplicationContext context: Context,
 ) : LocationPromptStore {
 
     private val preferences = context.getSharedPreferences(FileName, Context.MODE_PRIVATE)

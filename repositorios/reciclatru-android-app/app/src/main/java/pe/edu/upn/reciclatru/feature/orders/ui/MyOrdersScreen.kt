@@ -221,6 +221,7 @@ private fun MyOrdersContent(
                                 weight = formatWeightKg(order.totalWeightKg),
                                 onClick = { onOpenOrder(order.id) },
                                 footer = order.toFooter(),
+                                thumbnail = order.thumbnailUrl,
                             )
                         }
                         if (current.nextCursor != null) {

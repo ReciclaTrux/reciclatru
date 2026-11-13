@@ -98,7 +98,7 @@ segunda tabla.
 | átomo | `RtSpinner` | listo | `ui/designsystem/atoms/RtSpinner.kt` |
 | átomo | `RtTextField` | listo | `ui/designsystem/atoms/RtTextField.kt` |
 | átomo | `RtAcceptanceChip` | pendiente | `ui/designsystem/atoms/RtAcceptanceChip.kt` |
-| átomo | `RtPhotoThumb` | pendiente | `ui/designsystem/atoms/RtPhotoThumb.kt` |
+| átomo | `RtPhotoThumb` | listo | `ui/designsystem/atoms/RtPhotoThumb.kt` |
 | átomo | `RtStatusChip` | listo | `ui/designsystem/atoms/RtStatusChip.kt` |
 | molécula | `RtAddressBlock` | pendiente | `ui/designsystem/molecules/RtAddressBlock.kt` |
 | molécula | `RtConfirmDialog` | listo | `ui/designsystem/molecules/RtConfirmDialog.kt` |
@@ -108,7 +108,7 @@ segunda tabla.
 | molécula | `RtInlineAlert` | listo | `ui/designsystem/molecules/RtInlineAlert.kt` |
 | molécula | `RtItemRow` | listo | `ui/designsystem/molecules/RtItemRow.kt` |
 | molécula | `RtMetaRow` | listo | `ui/designsystem/molecules/RtMetaRow.kt` |
-| molécula | `RtPhotoPicker` | pendiente | `ui/designsystem/molecules/RtPhotoPicker.kt` |
+| molécula | `RtPhotoPicker` | listo | `ui/designsystem/molecules/RtPhotoPicker.kt` |
 | molécula | `RtRoleSelector` | listo | `ui/designsystem/molecules/RtRoleSelector.kt` |
 | molécula | `RtSearchField` | listo | `ui/designsystem/molecules/RtSearchField.kt` |
 | molécula | `RtSnackbar` | listo | `ui/designsystem/molecules/RtSnackbar.kt` |
@@ -122,7 +122,7 @@ segunda tabla.
 | organismo | `RtLocationPrompt` | listo | `ui/designsystem/organisms/RtLocationPrompt.kt` |
 | organismo | `RtMapPicker` | listo | `ui/designsystem/organisms/RtMapPicker.kt` |
 | organismo | `RtOrderCard` | listo | `ui/designsystem/organisms/RtOrderCard.kt` |
-| organismo | `RtPhotoGallery` | pendiente | `ui/designsystem/organisms/RtPhotoGallery.kt` |
+| organismo | `RtPhotoGallery` | listo | `ui/designsystem/organisms/RtPhotoGallery.kt` |
 | organismo | `RtTopAppBar` | listo | `ui/designsystem/organisms/RtTopAppBar.kt` |
 
 El catálogo de lo implementado se abre solo en builds de debug: actividad

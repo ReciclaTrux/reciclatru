@@ -13,6 +13,8 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.network.toUserMessage
 import pe.edu.upn.reciclatru.feature.orders.domain.CancelOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.GetOrderUseCase
+import pe.edu.upn.reciclatru.feature.orders.domain.PendingPhotosStore
+import pe.edu.upn.reciclatru.feature.orders.domain.UploadOrderPhotosUseCase
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
@@ -21,6 +23,8 @@ class OrderDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val getOrder: GetOrderUseCase,
     private val cancelOrder: CancelOrderUseCase,
+    private val uploadPhotos: UploadOrderPhotosUseCase,
+    private val pendingPhotos: PendingPhotosStore,
 ) : ViewModel() {
 
     private val orderId: String = savedStateHandle.get<String>(OrderIdArg).orEmpty()
@@ -88,6 +92,30 @@ class OrderDetailViewModel @Inject constructor(
         }
     }
 
+    fun onRetryPhotos() {
+        val photos = pendingPhotos.get(orderId)
+        if (_uiState.value.uploadingPhotos || photos.isEmpty()) return
+        _uiState.update { it.copy(uploadingPhotos = true) }
+        viewModelScope.launch {
+            val failed = uploadPhotos(orderId, photos)
+            val order = try {
+                getOrder(orderId)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _uiState.value.order
+            }
+            _uiState.update {
+                it.copy(
+                    uploadingPhotos = false,
+                    pendingPhotoCount = failed,
+                    order = order,
+                    message = if (failed == 0) PhotosUploadedMessage else PhotosFailedMessage,
+                )
+            }
+        }
+    }
+
     fun onMessageShown() {
         _uiState.update { it.copy(message = null) }
     }
@@ -97,7 +125,9 @@ class OrderDetailViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val order = getOrder(orderId)
-                _uiState.update { it.copy(loading = false, order = order) }
+                _uiState.update {
+                    it.copy(loading = false, order = order, pendingPhotoCount = pendingPhotos.get(orderId).size)
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -110,6 +140,8 @@ class OrderDetailViewModel @Inject constructor(
         const val OrderIdArg = "orderId"
         private const val NotCancellableCode = "ORDER_NOT_CANCELLABLE"
         private const val CancelledMessage = "Pedido cancelado"
+        private const val PhotosUploadedMessage = "Fotos subidas"
+        private const val PhotosFailedMessage = "No pudimos subir las fotos. Inténtalo de nuevo."
         private const val NotCancellableMessage = "Este pedido ya no se puede cancelar."
     }
 }

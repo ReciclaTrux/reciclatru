@@ -20,6 +20,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonSize
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtElevation
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtRadius
@@ -126,12 +127,14 @@ private fun RtConfirmDialogContent(
                     onClick = onDismiss,
                     variant = RtButtonVariant.Text,
                     enabled = !loading,
+                    size = RtButtonSize.Compact,
                 )
                 RtButton(
                     text = confirmLabel,
                     onClick = onConfirm,
                     variant = if (destructive) RtButtonVariant.Danger else RtButtonVariant.Primary,
                     loading = loading,
+                    size = RtButtonSize.Compact,
                 )
             }
         }
