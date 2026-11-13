@@ -12,4 +12,11 @@ data class Order(
     val acceptanceCount: Int? = null,
     val chosenRecyclerName: String? = null,
     val createdAt: Instant? = null,
+    val counterpart: OrderContact? = null,
+    val canCancel: Boolean = false,
+)
+
+data class OrderContact(
+    val fullName: String,
+    val phone: String,
 )

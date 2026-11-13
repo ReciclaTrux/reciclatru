@@ -1,6 +1,7 @@
 package pe.edu.upn.reciclatru.feature.orders.data
 
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderContact
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderSummary
@@ -26,7 +27,18 @@ fun ServicingOrderOutputDto.toOrder(): Order? {
         acceptanceCount = record.acceptanceCount,
         chosenRecyclerName = record.chosenRecyclerName,
         createdAt = record.createdAt.toInstantOrNull(),
+        counterpart = record.counterpart?.toOrderContact(),
+        canCancel = record.availableActions?.contains(CancelAction)
+            ?: (status == OrderStatus.Pending || status == OrderStatus.Confirmed),
     )
+}
+
+private const val CancelAction = "CANCEL"
+
+private fun CounterpartDto.toOrderContact(): OrderContact? {
+    val fullName = fullName ?: return null
+    val phone = phone ?: return null
+    return OrderContact(fullName = fullName, phone = phone)
 }
 
 fun OrdersTab.toQuery(): String = when (this) {

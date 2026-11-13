@@ -28,7 +28,7 @@ class MyOrdersViewModel @Inject constructor(
 
     fun onTabSelected(tab: OrdersTab) {
         _uiState.update { it.copy(selectedTab = tab) }
-        if (!_uiState.value.tab(tab).loaded) load(tab)
+        if (_uiState.value.tab(tab).loaded) refreshSilently(tab) else load(tab)
     }
 
     fun onRetry() {
@@ -56,7 +56,10 @@ class MyOrdersViewModel @Inject constructor(
     }
 
     fun onResume() {
-        val tab = _uiState.value.selectedTab
+        refreshSilently(_uiState.value.selectedTab)
+    }
+
+    private fun refreshSilently(tab: OrdersTab) {
         val current = _uiState.value.tab(tab)
         if (!current.loaded || current.loading || current.refreshing) return
         viewModelScope.launch {

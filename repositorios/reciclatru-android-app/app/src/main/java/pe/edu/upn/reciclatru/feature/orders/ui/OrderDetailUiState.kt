@@ -7,5 +7,7 @@ data class OrderDetailUiState(
     val refreshing: Boolean = false,
     val order: Order? = null,
     val loadError: String? = null,
+    val cancelDialogVisible: Boolean = false,
+    val cancelling: Boolean = false,
     val message: String? = null,
 )

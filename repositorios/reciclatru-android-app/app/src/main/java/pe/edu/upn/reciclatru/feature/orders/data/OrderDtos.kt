@@ -24,6 +24,13 @@ data class ServicingOrderRecordDto(
     @SerializedName("acceptanceCount") val acceptanceCount: Int? = null,
     @SerializedName("chosenRecyclerName") val chosenRecyclerName: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("counterpart") val counterpart: CounterpartDto? = null,
+    @SerializedName("availableActions") val availableActions: List<String>? = null,
+)
+
+data class CounterpartDto(
+    @SerializedName("fullName") val fullName: String? = null,
+    @SerializedName("phone") val phone: String? = null,
 )
 
 data class ServicingOrderListOutputDto(

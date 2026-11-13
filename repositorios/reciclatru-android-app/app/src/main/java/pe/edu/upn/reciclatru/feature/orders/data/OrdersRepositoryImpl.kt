@@ -40,6 +40,13 @@ class OrdersRepositoryImpl @Inject constructor(
             ?: throw unexpectedResponse()
     }
 
+    override suspend fun cancelOrder(id: String): Order = withContext(ioDispatcher) {
+        apiCall { api.cancelOrder(id) }
+            .getOrElse { error -> throw error }
+            .toOrder()
+            ?: throw unexpectedResponse()
+    }
+
     private fun unexpectedResponse() = NetworkException(
         kind = NetworkErrorKind.Unknown,
         message = "No pudimos completar la operación. Inténtalo de nuevo.",

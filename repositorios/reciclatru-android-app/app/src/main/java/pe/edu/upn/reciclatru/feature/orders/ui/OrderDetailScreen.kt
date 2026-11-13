@@ -1,5 +1,7 @@
 package pe.edu.upn.reciclatru.feature.orders.ui
 
+import android.content.Intent
+import android.net.Uri
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -26,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -33,13 +36,17 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinnerSize
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtStatusChip
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtConfirmDialog
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorState
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbarHost
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtActionBar
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtTopAppBar
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtRadius
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSpacing
@@ -70,7 +77,68 @@ fun OrderDetailScreen(
         onBack = onBack,
         onRetry = viewModel::onRetry,
         onRefresh = viewModel::onRefresh,
+        onCancel = viewModel::onCancelClick,
         modifier = modifier,
+    )
+
+    val order = state.order
+    if (state.cancelDialogVisible && order != null) {
+        CancelOrderDialog(
+            order = order,
+            cancelling = state.cancelling,
+            onConfirm = viewModel::onCancelConfirmed,
+            onDismiss = viewModel::onCancelDismissed,
+        )
+    }
+}
+
+@Composable
+private fun CancelOrderDialog(
+    order: Order,
+    cancelling: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val context = LocalContext.current
+    val recyclerName = order.counterpart?.fullName ?: order.chosenRecyclerName
+    val phone = order.counterpart?.phone
+
+    RtConfirmDialog(
+        title = "¿Seguro que deseas cancelar?",
+        message = "El pedido pasará a tu historial y no se podrá reactivar.",
+        confirmLabel = "Sí, cancelar",
+        onConfirm = onConfirm,
+        onDismiss = onDismiss,
+        destructive = true,
+        loading = cancelling,
+        modifier = Modifier.testTag("dialog_cancelar_pedido"),
+        notice = if (order.status == OrderStatus.Confirmed) {
+            {
+                val firstName = recyclerName?.substringBefore(' ') ?: "El reciclador"
+                RtInlineAlert(
+                    tone = RtInlineAlertTone.Warning,
+                    title = "${recyclerName ?: "El reciclador"} podría estar en camino",
+                    message = if (phone != null) {
+                        "Avísale antes de cancelar: ${phone.chunked(3).joinToString(" ")}"
+                    } else {
+                        "Avísale antes de cancelar."
+                    },
+                    actionLabel = if (phone != null) "Llamar a $firstName" else null,
+                    onAction = if (phone != null) {
+                        {
+                            runCatching {
+                                context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:$phone")))
+                            }
+                        }
+                    } else {
+                        null
+                    },
+                    modifier = Modifier.testTag("alert_reciclador_en_camino"),
+                )
+            }
+        } else {
+            null
+        },
     )
 }
 
@@ -82,6 +150,7 @@ private fun OrderDetailContent(
     onBack: () -> Unit,
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
+    onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -89,6 +158,21 @@ private fun OrderDetailContent(
         containerColor = MaterialTheme.colorScheme.background,
         topBar = { RtTopAppBar(title = "Detalle del pedido", onBack = onBack) },
         snackbarHost = { RtSnackbarHost(snackbarHostState) },
+        bottomBar = {
+            if (!state.loading && state.order?.canCancel == true) {
+                RtActionBar(
+                    primary = {
+                        RtButton(
+                            text = "Cancelar pedido",
+                            onClick = onCancel,
+                            variant = RtButtonVariant.Secondary,
+                            fullWidth = true,
+                            modifier = Modifier.testTag("btn_cancelar_pedido"),
+                        )
+                    },
+                )
+            }
+        },
     ) { innerPadding ->
         val order = state.order
         when {
@@ -246,12 +330,14 @@ private fun OrderDetailPreview() {
                     totalWeightKg = 12.5,
                     acceptanceCount = 0,
                     createdAt = Instant.now(),
+                    canCancel = true,
                 ),
             ),
             snackbarHostState = remember { SnackbarHostState() },
             onBack = {},
             onRetry = {},
             onRefresh = {},
+            onCancel = {},
         )
     }
 }

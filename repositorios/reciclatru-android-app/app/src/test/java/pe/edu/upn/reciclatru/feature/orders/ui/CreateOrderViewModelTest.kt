@@ -278,6 +278,9 @@ class CreateOrderViewModelTest {
 
         override suspend fun getOrder(id: String): Order =
             Order(id = id, status = OrderStatus.Pending, items = emptyList(), totalWeightKg = 0.0)
+
+        override suspend fun cancelOrder(id: String): Order =
+            Order(id = id, status = OrderStatus.Cancelled, items = emptyList(), totalWeightKg = 0.0)
     }
 
     private class FakeUserProfileRepository(
