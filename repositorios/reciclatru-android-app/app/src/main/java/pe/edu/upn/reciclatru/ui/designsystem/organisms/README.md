@@ -8,10 +8,10 @@ estén en esta lista.
 - `RtAcceptanceCard` → `RtAcceptanceCard.kt` — pendiente (lote 4)
 - `RtAcceptedOrderCard` → `RtAcceptedOrderCard.kt` — pendiente (lote 4)
 - `RtActionBar` → `RtActionBar.kt` — implementado (lote 2)
-- `RtAvailableOrderCard` → `RtAvailableOrderCard.kt` — pendiente (lote 4)
+- `RtAvailableOrderCard` → `RtAvailableOrderCard.kt` — implementado (lote 4)
 - `RtBottomNav` → `RtBottomNav.kt` — implementado (lote 2)
 - `RtItemListEditor` → `RtItemListEditor.kt` — implementado (lote 3)
-- `RtLocationPrompt` → `RtLocationPrompt.kt` — pendiente (lote 4)
+- `RtLocationPrompt` → `RtLocationPrompt.kt` — implementado (lote 4)
 - `RtMapPicker` → `RtMapPicker.kt` — implementado (lote 2): mapa MapLibre real, estilo `positron` de OpenFreeMap y `center` opcional para mover la cámara.
 - `RtOrderCard` → `RtOrderCard.kt` — implementado (lote 3)
 - `RtPhotoGallery` → `RtPhotoGallery.kt` — pendiente (lote 4)
