@@ -9,5 +9,7 @@ data class OrderDetailUiState(
     val loadError: String? = null,
     val cancelDialogVisible: Boolean = false,
     val cancelling: Boolean = false,
+    val pendingPhotoCount: Int = 0,
+    val uploadingPhotos: Boolean = false,
     val message: String? = null,
 )

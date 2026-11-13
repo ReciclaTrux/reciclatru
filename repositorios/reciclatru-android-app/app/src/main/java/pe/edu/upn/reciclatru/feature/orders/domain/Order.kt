@@ -14,6 +14,12 @@ data class Order(
     val createdAt: Instant? = null,
     val counterpart: OrderContact? = null,
     val canCancel: Boolean = false,
+    val photos: List<OrderPhoto> = emptyList(),
+)
+
+data class OrderPhoto(
+    val id: String,
+    val url: String,
 )
 
 data class OrderContact(

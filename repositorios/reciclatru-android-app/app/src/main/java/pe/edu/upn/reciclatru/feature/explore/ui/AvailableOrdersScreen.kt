@@ -249,6 +249,7 @@ private fun AvailableOrdersContent(
                             distance = formatDistance(order.distanceKm),
                             timeAgo = formatTimeAgo(order.createdAt),
                             alreadyAccepted = order.alreadyAccepted,
+                            thumbnail = order.thumbnailUrl,
                         )
                     }
                     if (state.nextCursor != null) {

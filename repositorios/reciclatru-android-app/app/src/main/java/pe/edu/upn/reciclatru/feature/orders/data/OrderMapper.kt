@@ -1,8 +1,10 @@
 package pe.edu.upn.reciclatru.feature.orders.data
 
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
+import pe.edu.upn.reciclatru.core.network.toAbsoluteApiUrl
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderContact
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderPhoto
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderSummary
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
@@ -30,7 +32,14 @@ fun ServicingOrderOutputDto.toOrder(): Order? {
         counterpart = record.counterpart?.toOrderContact(),
         canCancel = record.availableActions?.contains(CancelAction)
             ?: (status == OrderStatus.Pending || status == OrderStatus.Confirmed),
+        photos = record.photos.orEmpty().mapNotNull { it.toOrderPhoto() },
     )
+}
+
+fun OrderPhotoDto.toOrderPhoto(): OrderPhoto? {
+    val id = id ?: return null
+    val url = url ?: return null
+    return OrderPhoto(id = id, url = url.toAbsoluteApiUrl())
 }
 
 private const val CancelAction = "CANCEL"
@@ -62,6 +71,7 @@ private fun OrderSummaryDto.toOrderSummary(): OrderSummary? {
         acceptanceCount = acceptanceCount,
         chosenRecyclerName = chosenRecyclerName,
         createdAt = createdAt.toInstantOrNull(),
+        thumbnailUrl = thumbnailUrl?.toAbsoluteApiUrl(),
     )
 }
 

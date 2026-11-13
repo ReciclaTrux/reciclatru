@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.feature.explore.data
 
+import pe.edu.upn.reciclatru.core.network.toAbsoluteApiUrl
 import pe.edu.upn.reciclatru.feature.explore.domain.AvailableOrder
 import pe.edu.upn.reciclatru.feature.explore.domain.AvailableOrdersPage
 import java.time.Instant
@@ -24,5 +25,6 @@ private fun AvailableOrderDto.toAvailableOrder(): AvailableOrder? {
         distanceKm = approximateDistanceKm,
         alreadyAccepted = alreadyAccepted == true,
         createdAt = createdAt?.let { value -> runCatching { Instant.parse(value) }.getOrNull() },
+        thumbnailUrl = thumbnailUrl?.toAbsoluteApiUrl(),
     )
 }

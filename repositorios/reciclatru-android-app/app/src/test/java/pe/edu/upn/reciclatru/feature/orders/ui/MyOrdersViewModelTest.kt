@@ -15,6 +15,7 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.feature.orders.domain.GetMyOrdersUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderPhoto
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderSummary
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
@@ -30,7 +31,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `al abrir carga los pedidos activos`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository()
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
         assertTrue(viewModel.uiState.value.current.loading)
 
         advanceUntilIdle()
@@ -45,7 +46,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `sin pedidos queda la lista vacia y sin error`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository(active = emptyList())
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
 
         advanceUntilIdle()
 
@@ -58,7 +59,7 @@ class MyOrdersViewModelTest {
     fun `si falla la carga muestra el error y reintentar vuelve a cargar`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val repository = FakeOrdersRepository(error = noConnection())
-            val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+            val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
             advanceUntilIdle()
             assertEquals("No tienes conexión. Revisa tu red e inténtalo de nuevo.", viewModel.uiState.value.current.error)
 
@@ -74,7 +75,7 @@ class MyOrdersViewModelTest {
     fun `el historial muestra carga solo la primera vez y luego se actualiza en silencio`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val repository = FakeOrdersRepository()
-            val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+            val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
             advanceUntilIdle()
 
             viewModel.onTabSelected(OrdersTab.History)
@@ -92,7 +93,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `cargar mas agrega la pagina siguiente`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository(activeCursor = "cursor-2")
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
         advanceUntilIdle()
 
         viewModel.onLoadMore()
@@ -108,7 +109,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `si falla al actualizar conserva la lista y avisa`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository()
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
         advanceUntilIdle()
 
         repository.error = noConnection()
@@ -125,7 +126,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `al volver a la pantalla actualiza la lista sin mostrar carga`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository()
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
         advanceUntilIdle()
 
         viewModel.onResume()
@@ -139,7 +140,7 @@ class MyOrdersViewModelTest {
     @Test
     fun `al publicar un pedido vuelve a activos, recarga y confirma`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository()
-        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository), FakePendingPhotosStore())
         advanceUntilIdle()
         viewModel.onTabSelected(OrdersTab.History)
         advanceUntilIdle()
@@ -152,6 +153,19 @@ class MyOrdersViewModelTest {
         assertEquals("Pedido publicado", state.message)
         assertEquals("new", state.messageOrderId)
         assertEquals(2, repository.calls.count { it.first == OrdersTab.Active })
+    }
+
+    @Test
+    fun `si quedaron fotos sin subir el mensaje lo avisa`() = runTest(mainDispatcherRule.testDispatcher) {
+        val pendingPhotos = FakePendingPhotosStore().apply { put("new", listOf("foto-1", "foto-2")) }
+        val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(FakeOrdersRepository()), pendingPhotos)
+        advanceUntilIdle()
+
+        viewModel.onOrderPublished("new")
+        advanceUntilIdle()
+
+        assertEquals("Pedido publicado, pero no se subieron 2 fotos", viewModel.uiState.value.message)
+        assertEquals("new", viewModel.uiState.value.messageOrderId)
     }
 
     private fun noConnection() = NetworkException(
@@ -184,6 +198,9 @@ class MyOrdersViewModelTest {
 
         override suspend fun cancelOrder(id: String): Order =
             Order(id = id, status = OrderStatus.Cancelled, items = emptyList(), totalWeightKg = 0.0)
+
+        override suspend fun uploadPhoto(orderId: String, photo: String): OrderPhoto =
+            OrderPhoto(id = photo, url = photo)
     }
 }
 
