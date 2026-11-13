@@ -71,7 +71,7 @@ class MyOrdersViewModelTest {
         }
 
     @Test
-    fun `el historial se carga la primera vez que se abre y no se repite`() =
+    fun `el historial muestra carga solo la primera vez y luego se actualiza en silencio`() =
         runTest(mainDispatcherRule.testDispatcher) {
             val repository = FakeOrdersRepository()
             val viewModel = MyOrdersViewModel(GetMyOrdersUseCase(repository))
@@ -80,11 +80,13 @@ class MyOrdersViewModelTest {
             viewModel.onTabSelected(OrdersTab.History)
             advanceUntilIdle()
             viewModel.onTabSelected(OrdersTab.Active)
+            advanceUntilIdle()
             viewModel.onTabSelected(OrdersTab.History)
+            assertFalse(viewModel.uiState.value.current.loading)
             advanceUntilIdle()
 
             assertEquals(listOf("h1"), viewModel.uiState.value.current.orders.map { it.id })
-            assertEquals(listOf(OrdersTab.Active to null, OrdersTab.History to null), repository.calls)
+            assertEquals(2, repository.calls.count { it.first == OrdersTab.History })
         }
 
     @Test
@@ -179,6 +181,9 @@ class MyOrdersViewModelTest {
 
         override suspend fun getOrder(id: String): Order =
             Order(id = id, status = OrderStatus.Pending, items = emptyList(), totalWeightKg = 0.0)
+
+        override suspend fun cancelOrder(id: String): Order =
+            Order(id = id, status = OrderStatus.Cancelled, items = emptyList(), totalWeightKg = 0.0)
     }
 }
 

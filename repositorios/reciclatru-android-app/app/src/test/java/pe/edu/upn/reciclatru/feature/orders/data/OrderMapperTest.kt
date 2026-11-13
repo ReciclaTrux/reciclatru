@@ -94,6 +94,49 @@ class OrderMapperTest {
     }
 
     @Test
+    fun `un pedido confirmado trae el contacto del reciclador y permite cancelar`() {
+        val json = """
+            {
+              "crReferenceId": "5b2e9d41",
+              "servicingOrderInstanceRecord": {
+                "id": "5b2e9d41",
+                "status": "CONFIRMED",
+                "items": [{ "description": "Cartón", "weightKg": 9.0 }],
+                "totalWeightKg": 9.0,
+                "chosenRecyclerName": "Jorge Luis Mendoza Ruiz",
+                "counterpart": { "fullName": "Jorge Luis Mendoza Ruiz", "phone": "944123456" },
+                "availableActions": ["MARK_COLLECTED", "CANCEL"]
+              }
+            }
+        """.trimIndent()
+
+        val order = gson.fromJson(json, ServicingOrderOutputDto::class.java).toOrder()
+
+        assertEquals("944123456", order?.counterpart?.phone)
+        assertEquals(true, order?.canCancel)
+    }
+
+    @Test
+    fun `un pedido cancelado ya no permite cancelar`() {
+        val json = """
+            {
+              "servicingOrderInstanceRecord": {
+                "id": "92d6b0f3",
+                "status": "CANCELLED",
+                "items": [],
+                "totalWeightKg": 3.0,
+                "availableActions": []
+              }
+            }
+        """.trimIndent()
+
+        val order = gson.fromJson(json, ServicingOrderOutputDto::class.java).toOrder()
+
+        assertEquals(OrderStatus.Cancelled, order?.status)
+        assertEquals(false, order?.canCancel)
+    }
+
+    @Test
     fun `las pestanas viajan como ACTIVE e HISTORY`() {
         assertEquals("ACTIVE", OrdersTab.Active.toQuery())
         assertEquals("HISTORY", OrdersTab.History.toQuery())
