@@ -14,7 +14,7 @@ estén en esta lista.
 - `RtLocationPrompt` → `RtLocationPrompt.kt` — implementado (lote 4)
 - `RtMapPicker` → `RtMapPicker.kt` — implementado (lote 2): mapa MapLibre real, estilo `positron` de OpenFreeMap y `center` opcional para mover la cámara.
 - `RtOrderCard` → `RtOrderCard.kt` — implementado (lote 3)
-- `RtPhotoGallery` → `RtPhotoGallery.kt` — pendiente (lote 4)
+- `RtPhotoGallery` → `RtPhotoGallery.kt` — implementado (lote 4)
 - `RtTopAppBar` → `RtTopAppBar.kt` — implementado (lote 2)
 
 Se implementan por sprint, antes de que empiece, según las HU que lo usan (inventario por

@@ -16,10 +16,13 @@ import pe.edu.upn.reciclatru.core.session.UserRole
 import pe.edu.upn.reciclatru.feature.orders.domain.CreateOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.Order
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
+import pe.edu.upn.reciclatru.feature.orders.domain.OrderPhoto
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderStatus
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersPage
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersRepository
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
+import pe.edu.upn.reciclatru.feature.orders.domain.PendingPhotosStore
+import pe.edu.upn.reciclatru.feature.orders.domain.UploadOrderPhotosUseCase
 import pe.edu.upn.reciclatru.feature.profile.domain.GetProfileUseCase
 import pe.edu.upn.reciclatru.feature.profile.domain.PickupAddress
 import pe.edu.upn.reciclatru.feature.profile.domain.UserProfile
@@ -239,10 +242,60 @@ class CreateOrderViewModelTest {
         assertNull(viewModel.uiState.value.publishError)
     }
 
+    @Test
+    fun `se pueden agregar hasta 3 fotos y quitarlas`() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel()
+
+        listOf("foto-1", "foto-2", "foto-3", "foto-4").forEach(viewModel::onPhotoAdded)
+        assertEquals(listOf("foto-1", "foto-2", "foto-3"), viewModel.uiState.value.photos)
+
+        viewModel.onPhotoRemoved(1)
+        assertEquals(listOf("foto-1", "foto-3"), viewModel.uiState.value.photos)
+    }
+
+    @Test
+    fun `las fotos se suben despues de crear el pedido`() = runTest(mainDispatcherRule.testDispatcher) {
+        val orders = FakeOrdersRepository()
+        val viewModel = createViewModel(orders)
+        viewModel.fillFirstItem("Botellas", "2.5")
+        viewModel.onPhotoAdded("foto-1")
+        viewModel.onPhotoAdded("foto-2")
+
+        viewModel.onPublish()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.published)
+        assertFalse(viewModel.uiState.value.uploadingPhotos)
+        assertEquals(listOf("0f8a3c52" to "foto-1", "0f8a3c52" to "foto-2"), orders.uploadedPhotos)
+    }
+
+    @Test
+    fun `si una foto no se sube el pedido queda publicado y la foto pendiente`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val orders = FakeOrdersRepository(failingPhotos = setOf("foto-2"))
+            val pendingPhotos = FakePendingPhotosStore()
+            val viewModel = createViewModel(orders, pendingPhotos = pendingPhotos)
+            viewModel.fillFirstItem("Botellas", "2.5")
+            viewModel.onPhotoAdded("foto-1")
+            viewModel.onPhotoAdded("foto-2")
+
+            viewModel.onPublish()
+            advanceUntilIdle()
+
+            assertTrue(viewModel.uiState.value.published)
+            assertEquals(1, orders.createCalls)
+            assertEquals(listOf("foto-2"), pendingPhotos.get("0f8a3c52"))
+        }
+
     private fun createViewModel(
         orders: OrdersRepository = FakeOrdersRepository(),
         profiles: UserProfileRepository = FakeUserProfileRepository(),
-    ) = CreateOrderViewModel(CreateOrderUseCase(orders), GetProfileUseCase(profiles))
+        pendingPhotos: PendingPhotosStore = FakePendingPhotosStore(),
+    ) = CreateOrderViewModel(
+        createOrder = CreateOrderUseCase(orders),
+        getProfile = GetProfileUseCase(profiles),
+        uploadPhotos = UploadOrderPhotosUseCase(orders, pendingPhotos),
+    )
 
     private fun CreateOrderViewModel.fillFirstItem(description: String, weight: String) {
         val id = uiState.value.items.first().id
@@ -257,7 +310,11 @@ class CreateOrderViewModelTest {
         onWeightChange(id, weight)
     }
 
-    private class FakeOrdersRepository(var error: Exception? = null) : OrdersRepository {
+    private class FakeOrdersRepository(
+        var error: Exception? = null,
+        val failingPhotos: Set<String> = emptySet(),
+    ) : OrdersRepository {
+        val uploadedPhotos = mutableListOf<Pair<String, String>>()
         var createCalls = 0
         var lastItems: List<OrderItem> = emptyList()
 
@@ -281,6 +338,12 @@ class CreateOrderViewModelTest {
 
         override suspend fun cancelOrder(id: String): Order =
             Order(id = id, status = OrderStatus.Cancelled, items = emptyList(), totalWeightKg = 0.0)
+
+        override suspend fun uploadPhoto(orderId: String, photo: String): OrderPhoto {
+            if (photo in failingPhotos) throw NetworkException(NetworkErrorKind.NoConnection, "Sin conexión")
+            uploadedPhotos += orderId to photo
+            return OrderPhoto(id = photo, url = photo)
+        }
     }
 
     private class FakeUserProfileRepository(

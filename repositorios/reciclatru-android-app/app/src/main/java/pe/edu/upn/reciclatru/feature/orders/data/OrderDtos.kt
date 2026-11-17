@@ -26,6 +26,12 @@ data class ServicingOrderRecordDto(
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("counterpart") val counterpart: CounterpartDto? = null,
     @SerializedName("availableActions") val availableActions: List<String>? = null,
+    @SerializedName("photos") val photos: List<OrderPhotoDto>? = null,
+)
+
+data class OrderPhotoDto(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("url") val url: String? = null,
 )
 
 data class CounterpartDto(
@@ -46,4 +52,5 @@ data class OrderSummaryDto(
     @SerializedName("acceptanceCount") val acceptanceCount: Int? = null,
     @SerializedName("chosenRecyclerName") val chosenRecyclerName: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
 )

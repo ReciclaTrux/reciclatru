@@ -47,6 +47,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlert
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSnackbarHost
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtActionBar
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtPhotoGallery
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtTopAppBar
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtRadius
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtSpacing
@@ -78,6 +79,7 @@ fun OrderDetailScreen(
         onRetry = viewModel::onRetry,
         onRefresh = viewModel::onRefresh,
         onCancel = viewModel::onCancelClick,
+        onRetryPhotos = viewModel::onRetryPhotos,
         modifier = modifier,
     )
 
@@ -151,6 +153,7 @@ private fun OrderDetailContent(
     onRetry: () -> Unit,
     onRefresh: () -> Unit,
     onCancel: () -> Unit,
+    onRetryPhotos: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -219,6 +222,26 @@ private fun OrderDetailContent(
                     }
                     StatusNotice(order = order)
                     MaterialsCard(order = order)
+                    if (order.photos.isNotEmpty()) {
+                        RtPhotoGallery(
+                            photos = order.photos.map { it.url },
+                            modifier = Modifier.testTag("galeria_fotos"),
+                        )
+                    }
+                    if (state.pendingPhotoCount > 0) {
+                        RtInlineAlert(
+                            tone = RtInlineAlertTone.Warning,
+                            title = if (state.pendingPhotoCount == 1) {
+                                "No se subió 1 foto"
+                            } else {
+                                "No se subieron ${state.pendingPhotoCount} fotos"
+                            },
+                            message = "El pedido quedó publicado. Puedes intentar subirlas otra vez.",
+                            actionLabel = if (state.uploadingPhotos) "Subiendo…" else "Reintentar",
+                            onAction = onRetryPhotos,
+                            modifier = Modifier.testTag("alert_fotos_pendientes"),
+                        )
+                    }
                     if (order.status == OrderStatus.Collected || order.status == OrderStatus.Cancelled) {
                         Text(
                             text = "Este pedido ya no se puede editar ni cancelar.",
@@ -338,6 +361,7 @@ private fun OrderDetailPreview() {
             onRetry = {},
             onRefresh = {},
             onCancel = {},
+            onRetryPhotos = {},
         )
     }
 }

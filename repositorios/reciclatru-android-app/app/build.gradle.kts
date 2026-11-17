@@ -71,6 +71,8 @@ dependencies {
     implementation(libs.okhttp.logging.interceptor)
     implementation(libs.maplibre.android)
     implementation(libs.play.services.location)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

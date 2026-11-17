@@ -12,6 +12,8 @@ data class OrderItemInput(
 data class CreateOrderUiState(
     val items: List<OrderItemInput> = emptyList(),
     val totalWeightLabel: String = "0 kg",
+    val photos: List<String> = emptyList(),
+    val uploadingPhotos: Boolean = false,
     val pickupAddress: String? = null,
     val profileIncomplete: Boolean = false,
     val itemsError: String? = null,

@@ -12,6 +12,7 @@ data class OrderSummary(
     val acceptanceCount: Int?,
     val chosenRecyclerName: String?,
     val createdAt: Instant?,
+    val thumbnailUrl: String? = null,
 )
 
 data class OrdersPage(

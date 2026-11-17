@@ -15,6 +15,7 @@ data class AvailableOrder(
     val distanceKm: Double?,
     val alreadyAccepted: Boolean,
     val createdAt: Instant?,
+    val thumbnailUrl: String? = null,
 )
 
 data class AvailableOrdersPage(

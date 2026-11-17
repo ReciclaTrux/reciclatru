@@ -14,6 +14,7 @@ data class AvailableOrderDto(
     @SerializedName("itemCount") val itemCount: Int? = null,
     @SerializedName("totalWeightKg") val totalWeightKg: Double? = null,
     @SerializedName("zone") val zone: String? = null,
+    @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
     @SerializedName("approximateDistanceKm") val approximateDistanceKm: Double? = null,
     @SerializedName("alreadyAccepted") val alreadyAccepted: Boolean? = null,
     @SerializedName("createdAt") val createdAt: String? = null,

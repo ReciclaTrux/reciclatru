@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtOrderStatus
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtPhotoThumb
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtStatusChip
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMeta
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMetaRow
@@ -59,6 +60,7 @@ data class RtOrderCardFooter(
  * @param items cantidad de ítems ya formateada, por ejemplo "3 ítems".
  * @param weight peso total ya formateado, por ejemplo "14.5 kg".
  * @param footer aceptaciones o reciclador elegido; `null` en el historial.
+ * @param thumbnail URL de la primera foto del pedido; `null` muestra el ícono.
  */
 @Composable
 fun RtOrderCard(
@@ -69,6 +71,7 @@ fun RtOrderCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
     footer: RtOrderCardFooter? = null,
+    thumbnail: Any? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(RtRadius.lg)
@@ -87,20 +90,7 @@ fun RtOrderCard(
             horizontalArrangement = Arrangement.spacedBy(RtSpacing.s3),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(RtSize.thumbSm)
-                    .clip(RoundedCornerShape(RtRadius.sm))
-                    .background(colorScheme.surfaceVariant),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Inventory2,
-                    contentDescription = null,
-                    modifier = Modifier.size(RtSize.iconMd),
-                    tint = colorScheme.onSurfaceVariant,
-                )
-            }
+            RtPhotoThumb(model = thumbnail)
             Column(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(RtSpacing.s1),

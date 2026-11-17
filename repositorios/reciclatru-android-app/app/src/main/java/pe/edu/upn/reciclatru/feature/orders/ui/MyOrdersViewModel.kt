@@ -11,12 +11,14 @@ import kotlinx.coroutines.launch
 import pe.edu.upn.reciclatru.core.network.toUserMessage
 import pe.edu.upn.reciclatru.feature.orders.domain.GetMyOrdersUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.OrdersTab
+import pe.edu.upn.reciclatru.feature.orders.domain.PendingPhotosStore
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
 
 @HiltViewModel
 class MyOrdersViewModel @Inject constructor(
     private val getMyOrders: GetMyOrdersUseCase,
+    private val pendingPhotos: PendingPhotosStore,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(MyOrdersUiState())
@@ -96,10 +98,15 @@ class MyOrdersViewModel @Inject constructor(
     }
 
     fun onOrderPublished(orderId: String) {
+        val failedPhotos = pendingPhotos.get(orderId).size
         _uiState.update {
             it.copy(
                 selectedTab = OrdersTab.Active,
-                message = PublishedMessage,
+                message = when (failedPhotos) {
+                    0 -> PublishedMessage
+                    1 -> "Pedido publicado, pero no se subió 1 foto"
+                    else -> "Pedido publicado, pero no se subieron $failedPhotos fotos"
+                },
                 messageOrderId = orderId.ifBlank { null },
             )
         }

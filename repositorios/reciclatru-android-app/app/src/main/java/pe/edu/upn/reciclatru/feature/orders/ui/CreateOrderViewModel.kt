@@ -12,6 +12,7 @@ import pe.edu.upn.reciclatru.core.network.NetworkException
 import pe.edu.upn.reciclatru.core.network.toUserMessage
 import pe.edu.upn.reciclatru.feature.orders.domain.CreateOrderUseCase
 import pe.edu.upn.reciclatru.feature.orders.domain.OrderItem
+import pe.edu.upn.reciclatru.feature.orders.domain.UploadOrderPhotosUseCase
 import pe.edu.upn.reciclatru.feature.profile.domain.GetProfileUseCase
 import javax.inject.Inject
 import kotlin.coroutines.cancellation.CancellationException
@@ -20,6 +21,7 @@ import kotlin.coroutines.cancellation.CancellationException
 class CreateOrderViewModel @Inject constructor(
     private val createOrder: CreateOrderUseCase,
     private val getProfile: GetProfileUseCase,
+    private val uploadPhotos: UploadOrderPhotosUseCase,
 ) : ViewModel() {
 
     private var nextItemId = 0L
@@ -62,6 +64,17 @@ class CreateOrderViewModel @Inject constructor(
         }
     }
 
+    fun onPhotoAdded(photo: String) {
+        val current = _uiState.value
+        if (current.publishing || current.photos.size >= MaxPhotos) return
+        _uiState.update { it.copy(photos = it.photos + photo) }
+    }
+
+    fun onPhotoRemoved(index: Int) {
+        if (_uiState.value.publishing) return
+        _uiState.update { it.copy(photos = it.photos.filterIndexed { position, _ -> position != index }) }
+    }
+
     fun onProfileDialogDismissed() {
         _uiState.update { it.copy(profileIncomplete = false) }
     }
@@ -96,7 +109,14 @@ class CreateOrderViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val order = createOrder(orderItems)
-                _uiState.update { it.copy(publishing = false, published = true, publishedOrderId = order.id) }
+                val photos = _uiState.value.photos
+                if (photos.isNotEmpty()) {
+                    _uiState.update { it.copy(uploadingPhotos = true) }
+                    uploadPhotos(order.id, photos)
+                }
+                _uiState.update {
+                    it.copy(publishing = false, uploadingPhotos = false, published = true, publishedOrderId = order.id)
+                }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (error: Exception) {
@@ -170,6 +190,7 @@ class CreateOrderViewModel @Inject constructor(
 
     private companion object {
         const val MaxItems = 10
+        const val MaxPhotos = 3
         const val MaxDescriptionLength = 100
         const val MaxWeightTenths = 5000
         const val TenthsPerKg = 10.0

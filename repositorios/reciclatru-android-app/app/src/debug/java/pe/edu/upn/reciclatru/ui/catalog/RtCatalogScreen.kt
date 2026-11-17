@@ -65,6 +65,8 @@ import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtIconButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinnerSize
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtOrderStatus
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtPhotoThumb
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtPhotoThumbSize
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtStatusChip
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtTextField
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtConfirmDialog
@@ -77,6 +79,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtInlineAlertTone
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtItemRow
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMeta
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMetaRow
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtPhotoPicker
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRole
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtRoleSelector
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtSearchField
@@ -90,6 +93,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtItemListEntry
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtLocationPrompt
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCard
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtOrderCardFooter
+import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtPhotoGallery
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtAppBarAction
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNav
 import pe.edu.upn.reciclatru.ui.designsystem.organisms.RtBottomNavItem
@@ -356,6 +360,7 @@ private fun AtomsSection() {
         AvatarCatalog()
         BadgeCatalog()
         StatusChipCatalog()
+        PhotoThumbCatalog()
     }
 }
 
@@ -559,6 +564,7 @@ private fun MoleculesSection() {
         MetaRowCatalog()
         TabsCatalog()
         EmptyStateCatalog()
+        PhotoPickerCatalog()
         ConfirmDialogCatalog()
         SnackbarCatalog()
         ErrorStateCatalog()
@@ -695,6 +701,34 @@ private fun SearchFieldCatalog() {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
+}
+
+@Composable
+private fun PhotoThumbCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtPhotoThumb")
+        Row(horizontalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+            RtPhotoThumb(model = null)
+            RtPhotoThumb(model = null, size = RtPhotoThumbSize.Medium, onRemove = {})
+        }
+    }
+}
+
+@Composable
+private fun PhotoPickerCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtPhotoPicker")
+        RtPhotoPicker(photos = listOf("a", "b"), onAdd = {}, onRemove = {})
+        RtPhotoPicker(photos = listOf("a", "b", "c"), onAdd = {}, onRemove = {})
+    }
+}
+
+@Composable
+private fun PhotoGalleryCatalog() {
+    Column(verticalArrangement = Arrangement.spacedBy(RtSpacing.s3)) {
+        ComponentTitle(text = "RtPhotoGallery")
+        RtPhotoGallery(photos = listOf("a", "b"))
     }
 }
 
@@ -958,6 +992,7 @@ private fun OrganismsSection() {
         OrderCardCatalog()
         AvailableOrderCardCatalog()
         LocationPromptCatalog()
+        PhotoGalleryCatalog()
     }
 }
 

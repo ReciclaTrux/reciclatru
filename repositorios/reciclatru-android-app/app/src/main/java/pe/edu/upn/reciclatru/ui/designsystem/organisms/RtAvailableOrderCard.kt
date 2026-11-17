@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtBadge
+import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtPhotoThumb
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMeta
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtMetaRow
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtRadius
@@ -45,6 +46,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.theme.RtTheme
  * @param timeAgo tiempo desde la publicación, por ejemplo "hace 2 h".
  * @param alreadyAccepted muestra la marca "Ya aceptaste".
  * @param onClick abre el detalle; `null` deja la tarjeta sin acción.
+ * @param thumbnail URL de la primera foto del pedido; `null` muestra el ícono.
  */
 @Composable
 fun RtAvailableOrderCard(
@@ -56,6 +58,7 @@ fun RtAvailableOrderCard(
     timeAgo: String? = null,
     alreadyAccepted: Boolean = false,
     onClick: (() -> Unit)? = null,
+    thumbnail: Any? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     val shape = RoundedCornerShape(RtRadius.lg)
@@ -71,20 +74,7 @@ fun RtAvailableOrderCard(
         horizontalArrangement = Arrangement.spacedBy(RtSpacing.s3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(RtSize.thumbSm)
-                .clip(RoundedCornerShape(RtRadius.sm))
-                .background(colorScheme.surfaceVariant),
-            contentAlignment = Alignment.Center,
-        ) {
-            Icon(
-                imageVector = Icons.Rounded.Inventory2,
-                contentDescription = null,
-                modifier = Modifier.size(RtSize.iconMd),
-                tint = colorScheme.onSurfaceVariant,
-            )
-        }
+        RtPhotoThumb(model = thumbnail)
         Column(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(RtSpacing.s1),

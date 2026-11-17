@@ -137,6 +137,31 @@ class OrderMapperTest {
     }
 
     @Test
+    fun `las fotos del pedido llegan con su direccion completa`() {
+        val json = """
+            {
+              "servicingOrderInstanceRecord": {
+                "id": "0f8a3c52",
+                "status": "PENDING",
+                "items": [],
+                "totalWeightKg": 4.5,
+                "photos": [
+                  { "id": "a3b4c5d6", "url": "/api/v1/servicing-order/0f8a3c52/photo/a3b4c5d6/retrieval" }
+                ]
+              }
+            }
+        """.trimIndent()
+
+        val order = gson.fromJson(json, ServicingOrderOutputDto::class.java).toOrder()
+
+        assertEquals(1, order?.photos?.size)
+        assertEquals(
+            "https://reciclatru.onrender.com/api/v1/servicing-order/0f8a3c52/photo/a3b4c5d6/retrieval",
+            order?.photos?.first()?.url,
+        )
+    }
+
+    @Test
     fun `las pestanas viajan como ACTIVE e HISTORY`() {
         assertEquals("ACTIVE", OrdersTab.Active.toQuery())
         assertEquals("HISTORY", OrdersTab.History.toQuery())
