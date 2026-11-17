@@ -1,0 +1,13 @@
+{
+  "name": "reciclatru-perf-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pruebas de carga y estrés (k6) del API de ReciclaTru",
+  "scripts": {
+    "smoke": "k6 run tests/smoke.test.js --summary-export=results/smoke.json",
+    "load": "k6 run tests/load.test.js --summary-export=results/load.json",
+    "stress": "k6 run tests/stress.test.js --summary-export=results/stress.json",
+    "spike": "k6 run tests/spike.test.js --summary-export=results/spike.json",
+    "soak": "k6 run tests/soak.test.js --summary-export=results/soak.json"
+  }
+}

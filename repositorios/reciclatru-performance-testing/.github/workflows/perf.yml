@@ -1,0 +1,30 @@
+name: perf
+# Manual: elige la prueba y la URL del API de PRUEBAS (nunca producción).
+on:
+  workflow_dispatch:
+    inputs:
+      test:
+        description: Prueba a ejecutar
+        type: choice
+        options: [smoke, load, stress, spike, soak]
+        default: smoke
+      base_url:
+        description: URL base del API de pruebas
+        required: true
+      vus:
+        description: Usuarios virtuales en el punto más alto
+        default: '20'
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: grafana/setup-k6-action@v1
+      - name: Ejecutar k6
+        run: k6 run tests/${{ inputs.test }}.test.js -e BASE_URL=${{ inputs.base_url }} -e VUS=${{ inputs.vus }} --summary-export=results/${{ inputs.test }}.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: resultados-${{ inputs.test }}
+          path: results/
