@@ -2,18 +2,18 @@ package pe.edu.upn.reciclatru
 
 import android.os.Bundle
 import androidx.activity.ComponentActivity
-import androidx.activity.viewModels
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import dagger.hilt.android.AndroidEntryPoint
-import pe.edu.upn.reciclatru.core.navigation.AppNavHost
-import pe.edu.upn.reciclatru.core.navigation.AppSessionViewModel
 import pe.edu.upn.reciclatru.ui.designsystem.theme.RtTheme
+import pe.edu.upn.reciclatru.view.navigation.AppNavHost
+import pe.edu.upn.reciclatru.viewmodel.session.AppSessionViewModel
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {

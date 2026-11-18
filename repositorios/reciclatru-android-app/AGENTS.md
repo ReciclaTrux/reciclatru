@@ -1,7 +1,7 @@
 # AGENTS.md — Android (ReciclaTru)
 
 Cliente principal del proyecto. Kotlin + Jetpack Compose + Material 3, arquitectura MVVM
-por feature e inyección de dependencias con Hilt. Paquete base:
+por capas e inyección de dependencias con Hilt. Paquete base:
 `pe.edu.upn.reciclatru`.
 
 Lee primero `../../AGENTS.md`.
@@ -10,40 +10,43 @@ diseño, tests y checklist del PR.
 
 ## Arquitectura
 
-Una **feature = un dominio de negocio**, con el mismo nombre que en Flutter: `auth`, `profile`, `orders`, `explore`, `tracking`. Cada feature se divide en
-tres capas:
-
 ```text
 app/src/main/java/pe/edu/upn/reciclatru/
-├── core/                      # transversal, sin lógica de un dominio
-│   ├── network/               # cliente HTTP, interceptores, errores de red
-│   ├── session/               # token JWT, sesión y rol activo
-│   ├── navigation/            # rutas, NavHost y guardas de navegación
-│   └── di/                    # módulos Hilt globales
+├── model/                     # modelos de dominio (Kotlin puro), por dominio
+├── view/                      # pantallas Compose (*Screen.kt), formatters
+│   └── navigation/            # AppRoutes y AppNavHost
+├── viewmodel/                 # *ViewModel.kt y *UiState.kt, por dominio
+├── domain/
+│   ├── usecase/               # casos de uso, por dominio
+│   └── repository/            # contratos (interface) de repositorios y fuentes
+├── data/
+│   ├── remote/                # cliente HTTP, errores; api/ dto/ mapper/ por dominio
+│   ├── local/                 # sesión (DataStore), preferencias, geocoder, fotos
+│   └── repository/            # implementaciones de los repositorios
+├── di/                        # módulos Hilt globales y de cada dominio
 ├── ui/
 │   └── designsystem/          # Atomic Design: theme/ atoms/ molecules/ organisms/
-├── feature/
-│   ├── auth/                  # ui/ domain/ data/
-│   ├── profile/
-│   ├── orders/
-│   ├── explore/
-│   └── tracking/
 └── MainActivity.kt
 ```
 
+Los dominios son `auth`, `profile`, `orders`, `explore` y `tracking` (mismos nombres que en
+Flutter); cada paquete de capa los subdivide en una carpeta por dominio.
+
 ### Qué va en cada capa
 
-- **`ui/`**: pantallas Compose (`*Screen.kt`), ViewModels (`*ViewModel.kt`), estados de
-  UI y navegación de la feature. Es la **única** capa que conoce el ViewModel.
-  Los componentes visuales reutilizables **no** van acá: van a `ui/designsystem`.
-- **`domain/`**: modelos de dominio, casos de uso y contratos de repositorio
-  (`interface`). Kotlin puro, sin Android, sin Retrofit y sin anotaciones de Hilt.
-- **`data/`**: implementación de los repositorios, DTOs de la API, mappers DTO ↔ dominio,
-  fuentes de datos (Retrofit/DataStore) y el módulo Hilt que une las interfaces de
-  `domain` con sus implementaciones.
+- **`view/`**: pantallas Compose (`*Screen.kt`) y formatters de presentación. Es la
+  **única** capa que conoce el ViewModel (`hiltViewModel()`). Los componentes visuales
+  reutilizables **no** van acá: van a `ui/designsystem`.
+- **`viewmodel/`**: `*ViewModel.kt` y `*UiState.kt`. Expone el estado, recibe eventos y
+  llama casos de uso. Nunca conoce Compose ni la capa `view`.
+- **`model/`** y **`domain/`**: modelos, casos de uso y contratos de repositorio
+  (`interface`). Kotlin puro, sin Android ni Retrofit (los casos de uso solo llevan
+  `@Inject`).
+- **`data/`**: implementación de los repositorios, DTOs de la API, mappers DTO ↔ dominio y
+  fuentes de datos (Retrofit/DataStore). Los bindings Hilt van en `di/`.
 
-Flujo de dependencias: `ui → domain ← data`. La capa `ui` nunca importa DTOs ni clases de
-`data`; `domain` no depende de Android.
+Flujo de dependencias: `view → viewmodel → domain ← data`. `viewmodel` nunca importa DTOs ni
+clases de `data`; `domain` no depende de Android.
 
 ## Reglas
 
@@ -52,7 +55,7 @@ Flujo de dependencias: `ui → domain ← data`. La capa `ui` nunca importa DTOs
    eventos; no hace llamadas de red ni cálculos de negocio.
 2. **Hilt**: `@HiltAndroidApp` en la clase `Application`, `@AndroidEntryPoint` en
    actividades/fragmentos y `@HiltViewModel` en los ViewModels. Módulos globales en
-   `core/di`; el binding repositorio ↔ implementación de cada feature en su `data/`.
+   `di/`, que también incluye el binding repositorio ↔ implementación de cada dominio.
    No crear instancias manuales de repositorios ni de Retrofit dentro de Compose.
 3. **Nunca validar una regla de negocio solo en la app.** El backend es la fuente de
    verdad: permisos por rol, estados del pedido, privacidad de teléfono/dirección y
@@ -65,7 +68,7 @@ Flujo de dependencias: `ui → domain ← data`. La capa `ui` nunca importa DTOs
    - Los átomos envuelven Material 3, no lo reemplazan.
    - Todo componente lleva `@Preview` con los mismos estados que su vista previa en el
      sistema.
-   - Las pantallas viven en `feature/*/ui`, no en el sistema de diseño.
+   - Las pantallas viven en `view/<dominio>`, no en el sistema de diseño.
 5. **Privacidad**: no persistir la ubicación del reciclador; no mostrar teléfono ni
    dirección si el DTO del backend no los incluye para el rol/estado actual.
 6. **Componentes clave con `testTag`** (p. ej. `RtButton` recibe `modifier` y la pantalla

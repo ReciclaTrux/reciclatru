@@ -23,23 +23,31 @@ punta a punta. No se entrega "solo la UI" ni "solo el endpoint".
 Nunca agregues trabajo de otra HU. Si HU-01/HU-02 todavía no existen, tu pantalla debe
 funcionar y mostrar un error entendible cuando dependa de la sesión o de la API.
 
-## 2. Estructura de una feature
+## 2. Estructura por capas
 
-Una feature es un dominio de negocio con el mismo nombre que en Flutter: `auth`,
-`profile`, `orders`, `explore`, `tracking`.
+Cada capa tiene una carpeta por dominio de negocio, con el mismo nombre que en Flutter:
+`auth`, `profile`, `orders`, `explore`, `tracking`.
 
 ```text
-feature/<dominio>/
-├── ui/       # *Screen.kt, *ViewModel.kt, *UiState.kt
-├── domain/   # modelos, casos de uso y contratos (interface)
-└── data/     # API, DTOs, mappers, implementación y módulo Hilt
+model/<dominio>/               # modelos de dominio
+view/<dominio>/                # *Screen.kt y formatters
+viewmodel/<dominio>/           # *ViewModel.kt, *UiState.kt
+domain/usecase/<dominio>/      # casos de uso
+domain/repository/<dominio>/   # contratos (interface)
+data/remote/{api,dto,mapper}/<dominio>/   # Retrofit, DTOs y mappers
+data/repository/<dominio>/     # implementaciones de los repositorios
+data/local/<dominio>/          # DataStore, preferencias, geocoder
+di/                            # módulos Hilt (uno por dominio)
 ```
 
-Flujo: `ui → domain ← data`.
+Flujo: `view → viewmodel → domain ← data`.
 
-- `domain` es Kotlin puro: sin Android, sin Retrofit, sin Hilt.
-- `ui` nunca importa DTOs ni clases de `data`.
-- Lo transversal va en `core/`; lo que solo usa una feature, en su feature.
+- `domain` y `model` son Kotlin puro: sin Android ni Retrofit (los casos de uso solo
+  llevan `@Inject`).
+- `view` conoce a `viewmodel`; `viewmodel` no conoce Compose ni `view`.
+- `viewmodel` nunca importa DTOs ni clases de `data`.
+- Lo transversal (red, sesión, navegación, módulos Hilt) está en `data/remote`,
+  `data/local/session`, `view/navigation` y `di/`.
 
 ## 3. Hilt: todo se inyecta
 
@@ -51,24 +59,24 @@ Reglas:
 - Cada ViewModel lleva `@HiltViewModel` y recibe casos de uso por constructor:
   `@Inject constructor(...)`.
 - El binding interfaz ↔ implementación y los `@Provides` de la feature van en
-  `feature/<dominio>/data/<Feature>Module.kt`.
+  `di/<Feature>Module.kt`.
 - Dispatchers y alcances globales: usa `@IoDispatcher` y `@ApplicationScope` de
-  `core/di/Qualifiers.kt`. No uses `Dispatchers.IO` suelto en un repositorio.
+  `di/Qualifiers.kt`. No uses `Dispatchers.IO` suelto en un repositorio.
 - **Prohibido** crear repositorios, Retrofit, OkHttp, el Geocoder o cualquier dependencia
   a mano dentro de Compose o del ViewModel. Si falta un binding, se agrega al módulo.
 
-Ejemplo real: `feature/profile/data/ProfileModule.kt`.
+Ejemplo real: `di/ProfileModule.kt`.
 
 ## 4. Consumir la API
 
-- Un solo cliente HTTP: `core/network/NetworkModule` (OkHttp + Retrofit + Gson). La URL
+- Un solo cliente HTTP: `di/NetworkModule` (OkHttp + Retrofit + Gson). La URL
   base sale de `BuildConfig.API_BASE_URL`; no la repitas.
 - El token lo agrega `AuthInterceptor` desde `SessionStore`. La sesión la crean y borran
   HU-01/HU-02.
 - Toda llamada se envuelve con `apiCall { ... }`, que devuelve `Result<T>` y traduce
   `IOException`, timeout y códigos HTTP a `NetworkException` con un mensaje en español.
 - En el ViewModel, muestra el error con `error.toUserMessage(fallback = "...")`.
-- Los DTOs usan `@SerializedName` en **todos** los campos y viven en `data/`; los modelos
+- Los DTOs usan `@SerializedName` en **todos** los campos y viven en `data/remote/dto/`; los modelos
   de dominio no saben que existe Gson. El mapper DTO ↔ dominio va en un archivo aparte
   (ver `PickupLocationMapper.kt`).
 
@@ -89,11 +97,11 @@ Patrón obligatorio:
    `collectAsStateWithLifecycle()` y llama `viewModel` con `hiltViewModel()`. Solo dibuja
    y envía eventos; no hace red ni cálculos de negocio.
 
-Ejemplo completo: `feature/profile/ui/` (HU-04).
+Ejemplo completo: `view/profile/` y `viewmodel/profile/` (HU-04).
 
 Navegación:
 
-- Las rutas viven en `core/navigation/AppRoutes.kt`.
+- Las rutas viven en `view/navigation/AppRoutes.kt`.
 - Se registran en `AppNavHost`, no dentro de la pantalla.
 - Las guardas por sesión/rol se agregan cuando exista HU-01/HU-02. La app puede redirigir
   para mejorar la UX, pero el backend sigue validando permisos.
@@ -124,7 +132,7 @@ Reglas que más se incumplen:
 - **Si falta algo**, se propone primero en el sistema y se implementa en Android y Flutter
   con el mismo nombre. Mientras no esté aprobado, no se resuelve con un widget suelto en
   la pantalla.
-- Pantalla = `feature/*/ui`; los componentes reutilizables = `ui/designsystem`.
+- Pantalla = `view/<dominio>`; los componentes reutilizables = `ui/designsystem`.
 - Los componentes `Rt*` son stateless: reciben datos y callbacks, nunca ViewModels,
   repositorios ni modelos de dominio.
 - Nada de `Color(0x…)`, `16.dp` ni tamaños sueltos: solo tokens de
@@ -199,17 +207,17 @@ Copia el patrón, no el código:
 
 | Capa | Archivo | Qué mirar |
 | --- | --- | --- |
-| dominio | `feature/profile/domain/GeoPoint.kt` | modelo puro con validación |
-| dominio | `feature/profile/domain/ProfileRepository.kt` | contrato sin Android |
-| dominio | `feature/profile/domain/SavePickupLocationUseCase.kt` | caso de uso inyectable |
-| datos | `feature/profile/data/ProfileApi.kt` | endpoint y DTOs |
-| datos | `feature/profile/data/ProfileRepositoryImpl.kt` | sesión + `apiCall` + mapper |
-| datos | `feature/profile/data/ProfileModule.kt` | bindings Hilt |
-| UI | `feature/profile/ui/LocationUiState.kt` | estado inmutable |
-| UI | `feature/profile/ui/LocationViewModel.kt` | eventos y errores |
-| UI | `feature/profile/ui/LocationScreen.kt` | componentes del sistema + `testTag` |
-| tests | `feature/profile/ui/LocationViewModelTest.kt` | dobles + estados |
-| tests | `feature/profile/data/PickupLocationMapperTest.kt` | DTO ↔ dominio |
+| dominio | `model/profile/GeoPoint.kt` | modelo puro con validación |
+| dominio | `domain/repository/profile/ProfileRepository.kt` | contrato sin Android |
+| dominio | `domain/usecase/profile/SavePickupLocationUseCase.kt` | caso de uso inyectable |
+| datos | `data/remote/api/profile/ProfileApi.kt` | endpoint y DTOs |
+| datos | `data/repository/profile/ProfileRepositoryImpl.kt` | sesión + `apiCall` + mapper |
+| datos | `di/ProfileModule.kt` | bindings Hilt |
+| UI | `viewmodel/profile/LocationUiState.kt` | estado inmutable |
+| UI | `viewmodel/profile/LocationViewModel.kt` | eventos y errores |
+| UI | `view/profile/LocationScreen.kt` | componentes del sistema + `testTag` |
+| tests | `viewmodel/profile/LocationViewModelTest.kt` | dobles + estados |
+| tests | `data/remote/mapper/profile/PickupLocationMapperTest.kt` | DTO ↔ dominio |
 
 ## 9. Checklist antes del PR
 

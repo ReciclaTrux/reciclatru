@@ -1,7 +1,7 @@
 # ReciclaTru — Android
 
 Cliente principal de **ReciclaTru**, que conecta a vecinos de Trujillo con recicladores
-(ODS 12). Kotlin + Jetpack Compose + Material 3, arquitectura MVVM por feature e
+(ODS 12). Kotlin + Jetpack Compose + Material 3, arquitectura MVVM por capas e
 inyección de dependencias con Hilt. Paquete base: `pe.edu.upn.reciclatru`.
 
 La base de la app está lista y **HU-04 (punto de recojo) implementada como ejemplo** de
@@ -11,25 +11,21 @@ corte vertical, con tests. HU-01, HU-02 y HU-03 todavía no se tocan.
 
 ```text
 app/src/main/java/pe/edu/upn/reciclatru/
-├── core/
-│   ├── network/       # OkHttp, Retrofit, interceptor de token, errores
-│   ├── session/       # Session, roles y SessionStore (DataStore)
-│   ├── navigation/    # AppRoutes y AppNavHost
-│   └── di/            # módulos Hilt globales y calificadores
+├── model/             # modelos de dominio (Kotlin puro)
+├── view/              # pantallas Compose y navegación (AppRoutes, AppNavHost)
+├── viewmodel/         # ViewModels y estados de UI
+├── domain/            # usecase/ y repository/ (contratos)
+├── data/              # remote/ (Retrofit, DTOs, mappers), local/ y repository/
+├── di/                # módulos Hilt globales y calificadores
 ├── ui/designsystem/   # sistema de diseño: theme/ atoms/ molecules/ organisms/
-├── feature/
-│   ├── auth/          # HU-01 y HU-02 (pendiente)
-│   ├── profile/       # HU-03 y HU-04 (HU-04 lista como ejemplo)
-│   ├── orders/        # HU-05 a HU-09
-│   ├── explore/       # HU-10 a HU-12
-│   └── tracking/      # HU-13 a HU-16
 ├── ReciclaTruApp.kt   # @HiltAndroidApp
 └── MainActivity.kt    # @AndroidEntryPoint → AppNavHost
 ```
 
-Cada feature tiene `ui/` (pantalla, ViewModel y estado), `domain/` (modelos, casos de uso
-y contratos, Kotlin puro) y `data/` (Retrofit, DTOs, mappers, implementación y módulo
-Hilt). El flujo de dependencias es `ui → domain ← data`.
+Cada capa se subdivide por dominio: `auth` (HU-01 y HU-02), `profile` (HU-03 y HU-04),
+`orders` (HU-05 a HU-09), `explore` (HU-10 a HU-12) y `tracking` (HU-13 a HU-16, pendiente).
+El flujo de dependencias es `view → viewmodel → domain ← data`. Hay un README en cada
+paquete con el detalle.
 
 ## Antes de hacer una HU
 
@@ -49,7 +45,7 @@ Estado de cada componente y tabla **Componentes por HU**:
 - **API**: `BuildConfig.API_BASE_URL` en `app/build.gradle.kts`
   (`https://reciclatru.onrender.com/api/v1/`, la API publicada en Render). Ningún
   repositorio repite la URL.
-- **Sesión**: `core/session/SessionStore` guarda el token en DataStore y
+- **Sesión**: `data/local/session/SessionStore` guarda el token en DataStore y
   `AuthInterceptor` lo agrega a cada petición. HU-01/HU-02 son las que crean y borran la
   sesión.
 - **Hilt + KSP**: el proyecto usa AGP 9 con Kotlin integrado. KSP registra sus fuentes con
@@ -63,7 +59,7 @@ Estado de cada componente y tabla **Componentes por HU**:
 
 Al abrir la app, la pantalla de inicio llama a `GET /api/v1/health` y muestra
 **"Conectado"** si el backend responde `{"status":"UP"}`. Si falla, muestra el error con
-**Reintentar**. El código vive en `core/health/` (`data`, `domain` y `ui`).
+**Reintentar**. El código está repartido por capas bajo el nombre `health` (`viewmodel/health/`, `domain/usecase/health/`, `data/repository/health/`).
 
 ### Red y permisos
 
@@ -94,10 +90,10 @@ La pantalla de punto de recojo es el ejemplo de corte vertical:
 
 | Capa | Archivo |
 | --- | --- |
-| dominio | `feature/profile/domain/{GeoPoint,PickupLocation,GeocodingRepository,ProfileRepository}` y casos de uso |
-| datos | `feature/profile/data/{ProfileApi,AndroidGeocoderDataSource,GeocodingRepositoryImpl,ProfileRepositoryImpl,ProfileModule}` |
-| UI | `feature/profile/ui/{LocationScreen,LocationViewModel,LocationUiState}` |
-| tests | `app/src/test/java/pe/edu/upn/reciclatru/feature/profile/` |
+| dominio | `model/profile/{GeoPoint,PickupLocation}`, `domain/repository/profile/{GeocodingRepository,ProfileRepository}` y `domain/usecase/profile/` |
+| datos | `data/remote/api/profile/ProfileApi`, `data/local/profile/AndroidGeocoderDataSource`, `data/repository/profile/{GeocodingRepositoryImpl,ProfileRepositoryImpl}` y `di/ProfileModule` |
+| UI | `view/profile/LocationScreen`, `viewmodel/profile/{LocationViewModel,LocationUiState}` |
+| tests | `app/src/test/java/pe/edu/upn/reciclatru/viewmodel/profile/` y `.../data/remote/mapper/profile/` |
 
 - El mapa real es `RtMapPicker` (MapLibre + estilo **positron** de OpenFreeMap, sin API
   key). El geocoder es el de Android (`android.location.Geocoder`); en Flutter será el
