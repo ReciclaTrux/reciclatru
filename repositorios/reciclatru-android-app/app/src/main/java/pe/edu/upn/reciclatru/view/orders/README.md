@@ -2,7 +2,7 @@
 
 **Dominio:** pedidos — publicación, seguimiento propio y cancelación.
 
-Pedidos del vecino: publicar un pedido con materiales, pesos y fotos, ver los propios y cancelarlo. El estado y las transiciones válidas los define la API.
+Pedidos del vecino: publicar un pedido con materiales, pesos y fotos, ver los propios, cancelarlo y elegir al reciclador entre los que aceptaron (HU-13; la lista y el diálogo viven en `OrderDetailScreen`). El estado y las transiciones válidas los define la API.
 
 - `view/orders/` — `CreateOrderScreen`, `MyOrdersScreen`, `OrderDetailScreen` y `OrderFormat`.
 - `viewmodel/orders/` — un ViewModel y un `UiState` por pantalla.

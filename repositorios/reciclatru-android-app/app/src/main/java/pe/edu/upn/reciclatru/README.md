@@ -29,3 +29,4 @@ Flujo de dependencias: `view → viewmodel → domain ← data`.
 El sistema de diseño vive en `ui/designsystem/` ([README](ui/designsystem/README.md)).
 El dominio `tracking` (HU-13 a HU-16) aún no existe: cuando se implemente, tendrá su
 carpeta en cada capa, igual que los demás dominios.
+8

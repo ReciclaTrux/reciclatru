@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.viewmodel.explore
 
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -17,8 +18,10 @@ import pe.edu.upn.reciclatru.domain.repository.explore.ExploreRepository
 import pe.edu.upn.reciclatru.domain.repository.explore.LocationPromptStore
 import pe.edu.upn.reciclatru.domain.usecase.explore.GetAvailableOrdersUseCase
 import pe.edu.upn.reciclatru.model.explore.AvailableOrder
+import pe.edu.upn.reciclatru.model.explore.AvailableOrderDetail
 import pe.edu.upn.reciclatru.model.explore.AvailableOrdersPage
 import pe.edu.upn.reciclatru.model.explore.GeoPoint
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class AvailableOrdersViewModelTest {
@@ -235,6 +238,12 @@ class AvailableOrdersViewModelTest {
         private val cursor: String? = null,
         var error: Exception? = null,
     ) : ExploreRepository {
+        override suspend fun getOrderDetail(orderId: String, location: GeoPoint?): AvailableOrderDetail =
+            error("No se usa en este test")
+
+        override suspend fun acceptOrder(orderId: String): AvailableOrderDetail =
+            error("No se usa en este test")
+
         val calls = mutableListOf<Pair<GeoPoint?, String?>>()
 
         override suspend fun getAvailableOrders(location: GeoPoint?, cursor: String?): AvailableOrdersPage {

@@ -97,7 +97,7 @@ segunda tabla.
 | átomo | `RtIconButton` | listo | `ui/designsystem/atoms/RtIconButton.kt` |
 | átomo | `RtSpinner` | listo | `ui/designsystem/atoms/RtSpinner.kt` |
 | átomo | `RtTextField` | listo | `ui/designsystem/atoms/RtTextField.kt` |
-| átomo | `RtAcceptanceChip` | pendiente | `ui/designsystem/atoms/RtAcceptanceChip.kt` |
+| átomo | `RtAcceptanceChip` | listo | `ui/designsystem/atoms/RtAcceptanceChip.kt` |
 | átomo | `RtPhotoThumb` | listo | `ui/designsystem/atoms/RtPhotoThumb.kt` |
 | átomo | `RtStatusChip` | listo | `ui/designsystem/atoms/RtStatusChip.kt` |
 | molécula | `RtAddressBlock` | pendiente | `ui/designsystem/molecules/RtAddressBlock.kt` |
@@ -113,7 +113,7 @@ segunda tabla.
 | molécula | `RtSearchField` | listo | `ui/designsystem/molecules/RtSearchField.kt` |
 | molécula | `RtSnackbar` | listo | `ui/designsystem/molecules/RtSnackbar.kt` |
 | molécula | `RtTabs` | listo | `ui/designsystem/molecules/RtTabs.kt` |
-| organismo | `RtAcceptanceCard` | pendiente | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
+| organismo | `RtAcceptanceCard` | listo | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
 | organismo | `RtAcceptedOrderCard` | pendiente | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
 | organismo | `RtActionBar` | listo | `ui/designsystem/organisms/RtActionBar.kt` |
 | organismo | `RtAvailableOrderCard` | listo | `ui/designsystem/organisms/RtAvailableOrderCard.kt` |
@@ -126,7 +126,8 @@ segunda tabla.
 | organismo | `RtTopAppBar` | listo | `ui/designsystem/organisms/RtTopAppBar.kt` |
 
 El catálogo de lo implementado se abre solo en builds de debug: actividad
-`ui/catalog/RtCatalogActivity` (`app/src/debug/`), con el mismo contenido que las vistas
+`ui/catalog/RtCatalogActivity` (`app/src/debug/`, sin icono de inicio; se abre con
+`adb shell am start -n pe.edu.upn.reciclatru/.ui.catalog.RtCatalogActivity`), con el mismo contenido que las vistas
 previas de cada componente.
 
 ## Notas de implementación acordadas

@@ -34,6 +34,21 @@ fun formatOrderDate(
     }
 }
 
+fun formatAcceptedDate(
+    acceptedAt: Instant?,
+    now: Instant = Instant.now(),
+    zone: ZoneId = ZoneId.systemDefault(),
+): String {
+    if (acceptedAt == null) return "aceptó tu pedido"
+    val accepted = acceptedAt.atZone(zone)
+    val today = now.atZone(zone).toLocalDate()
+    return when (accepted.toLocalDate()) {
+        today -> "hoy, ${accepted.format(TimeFormat)}"
+        today.minusDays(1) -> "ayer, ${accepted.format(TimeFormat)}"
+        else -> accepted.format(DayFormat).replace(".", "")
+    }
+}
+
 fun formatPublishedDate(
     createdAt: Instant?,
     now: Instant = Instant.now(),

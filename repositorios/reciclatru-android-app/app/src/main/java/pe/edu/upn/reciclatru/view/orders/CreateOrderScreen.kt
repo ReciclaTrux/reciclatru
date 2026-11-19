@@ -140,7 +140,7 @@ fun CreateOrderScreen(
     }
 }
 
-private fun Context.newCameraPhotoUri(): Uri {
+internal fun Context.newCameraPhotoUri(): Uri {
     val directory = File(cacheDir, "photos").apply { mkdirs() }
     val file = File(directory, "foto_${System.currentTimeMillis()}.jpg")
     return FileProvider.getUriForFile(this, "$packageName.fileprovider", file)
@@ -148,7 +148,7 @@ private fun Context.newCameraPhotoUri(): Uri {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun PhotoSourceSheet(
+internal fun PhotoSourceSheet(
     onDismiss: () -> Unit,
     onCamera: () -> Unit,
     onGallery: () -> Unit,

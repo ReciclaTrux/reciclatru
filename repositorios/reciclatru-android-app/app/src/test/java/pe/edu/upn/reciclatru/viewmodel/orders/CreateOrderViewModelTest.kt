@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.viewmodel.orders
 
+
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -19,6 +20,7 @@ import pe.edu.upn.reciclatru.domain.usecase.orders.CreateOrderUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.UploadOrderPhotosUseCase
 import pe.edu.upn.reciclatru.domain.usecase.profile.GetProfileUseCase
 import pe.edu.upn.reciclatru.model.orders.Order
+import pe.edu.upn.reciclatru.model.orders.OrderAcceptance
 import pe.edu.upn.reciclatru.model.orders.OrderItem
 import pe.edu.upn.reciclatru.model.orders.OrderPhoto
 import pe.edu.upn.reciclatru.model.orders.OrderStatus
@@ -27,6 +29,7 @@ import pe.edu.upn.reciclatru.model.orders.OrdersTab
 import pe.edu.upn.reciclatru.model.profile.PickupAddress
 import pe.edu.upn.reciclatru.model.profile.UserProfile
 import pe.edu.upn.reciclatru.model.session.UserRole
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class CreateOrderViewModelTest {
@@ -314,6 +317,15 @@ class CreateOrderViewModelTest {
         var error: Exception? = null,
         val failingPhotos: Set<String> = emptySet(),
     ) : OrdersRepository {
+        override suspend fun updateOrder(id: String, items: List<OrderItem>): Order =
+            error("No se usa en este test")
+
+        override suspend fun removePhoto(orderId: String, photoId: String) =
+            error("No se usa en este test")
+        override suspend fun getAcceptances(orderId: String): List<OrderAcceptance> = emptyList()
+
+        override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order =
+            error("No se usa en este test")
         val uploadedPhotos = mutableListOf<Pair<String, String>>()
         var createCalls = 0
         var lastItems: List<OrderItem> = emptyList()

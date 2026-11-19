@@ -11,6 +11,10 @@ data class ServicingOrderInitiateRequestDto(
     @SerializedName("items") val items: List<OrderItemDto>,
 )
 
+data class ServicingOrderUpdateRequestDto(
+    @SerializedName("items") val items: List<OrderItemDto>,
+)
+
 data class ServicingOrderOutputDto(
     @SerializedName("crReferenceId") val crReferenceId: String? = null,
     @SerializedName("servicingOrderInstanceRecord") val record: ServicingOrderRecordDto? = null,
@@ -27,6 +31,10 @@ data class ServicingOrderRecordDto(
     @SerializedName("counterpart") val counterpart: CounterpartDto? = null,
     @SerializedName("availableActions") val availableActions: List<String>? = null,
     @SerializedName("photos") val photos: List<OrderPhotoDto>? = null,
+    @SerializedName("zone") val zone: String? = null,
+    @SerializedName("approximateDistanceKm") val approximateDistanceKm: Double? = null,
+    @SerializedName("alreadyAccepted") val alreadyAccepted: Boolean? = null,
+    @SerializedName("acceptanceStatus") val acceptanceStatus: String? = null,
 )
 
 data class OrderPhotoDto(
@@ -53,4 +61,20 @@ data class OrderSummaryDto(
     @SerializedName("chosenRecyclerName") val chosenRecyclerName: String? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
     @SerializedName("thumbnailUrl") val thumbnailUrl: String? = null,
+)
+
+data class AcceptanceListOutputDto(
+    @SerializedName("items") val items: List<AcceptanceRecordDto>? = null,
+)
+
+data class AcceptanceRecordDto(
+    @SerializedName("id") val id: String? = null,
+    @SerializedName("status") val status: String? = null,
+    @SerializedName("fullName") val fullName: String? = null,
+    @SerializedName("phone") val phone: String? = null,
+    @SerializedName("acceptedAt") val acceptedAt: String? = null,
+)
+
+data class ChooseRecyclerRequestDto(
+    @SerializedName("acceptanceId") val acceptanceId: String,
 )

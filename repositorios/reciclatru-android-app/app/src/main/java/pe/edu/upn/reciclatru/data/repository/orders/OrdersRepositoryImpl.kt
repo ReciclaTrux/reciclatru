@@ -1,5 +1,7 @@
 package pe.edu.upn.reciclatru.data.repository.orders
 
+
+
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.withContext
 import okhttp3.MediaType.Companion.toMediaType
@@ -10,14 +12,18 @@ import pe.edu.upn.reciclatru.data.remote.NetworkErrorKind
 import pe.edu.upn.reciclatru.data.remote.NetworkException
 import pe.edu.upn.reciclatru.data.remote.api.orders.OrdersApi
 import pe.edu.upn.reciclatru.data.remote.apiCall
+import pe.edu.upn.reciclatru.data.remote.mapper.orders.toAcceptances
+import pe.edu.upn.reciclatru.data.remote.mapper.orders.toChooseRecyclerRequest
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toInitiateRequest
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrder
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrderPhoto
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrdersPage
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toQuery
+import pe.edu.upn.reciclatru.data.remote.mapper.orders.toUpdateRequest
 import pe.edu.upn.reciclatru.di.IoDispatcher
 import pe.edu.upn.reciclatru.domain.repository.orders.OrdersRepository
 import pe.edu.upn.reciclatru.model.orders.Order
+import pe.edu.upn.reciclatru.model.orders.OrderAcceptance
 import pe.edu.upn.reciclatru.model.orders.OrderItem
 import pe.edu.upn.reciclatru.model.orders.OrderPhoto
 import pe.edu.upn.reciclatru.model.orders.OrdersPage
@@ -25,6 +31,8 @@ import pe.edu.upn.reciclatru.model.orders.OrdersTab
 import java.io.IOException
 import javax.inject.Inject
 import javax.inject.Singleton
+
+
 
 
 @Singleton
@@ -56,6 +64,31 @@ class OrdersRepositoryImpl @Inject constructor(
 
     override suspend fun cancelOrder(id: String): Order = withContext(ioDispatcher) {
         apiCall { api.cancelOrder(id) }
+            .getOrElse { error -> throw error }
+            .toOrder()
+            ?: throw unexpectedResponse()
+    }
+
+    override suspend fun updateOrder(id: String, items: List<OrderItem>): Order = withContext(ioDispatcher) {
+        apiCall { api.updateOrder(id, items.toUpdateRequest()) }
+            .getOrElse { error -> throw error }
+            .toOrder()
+            ?: throw unexpectedResponse()
+    }
+
+    override suspend fun removePhoto(orderId: String, photoId: String): Unit = withContext(ioDispatcher) {
+        apiCall { api.removePhoto(orderId, photoId) }
+            .getOrElse { error -> throw error }
+    }
+
+    override suspend fun getAcceptances(orderId: String): List<OrderAcceptance> = withContext(ioDispatcher) {
+        apiCall { api.getAcceptances(orderId) }
+            .getOrElse { error -> throw error }
+            .toAcceptances()
+    }
+
+    override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order = withContext(ioDispatcher) {
+        apiCall { api.chooseRecycler(orderId, acceptanceId.toChooseRecyclerRequest()) }
             .getOrElse { error -> throw error }
             .toOrder()
             ?: throw unexpectedResponse()

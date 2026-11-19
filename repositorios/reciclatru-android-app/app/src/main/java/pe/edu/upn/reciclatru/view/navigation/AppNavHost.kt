@@ -1,5 +1,7 @@
 package pe.edu.upn.reciclatru.view.navigation
 
+
+
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -18,8 +20,10 @@ import pe.edu.upn.reciclatru.model.session.SignOutReason
 import pe.edu.upn.reciclatru.model.session.UserRole
 import pe.edu.upn.reciclatru.view.auth.LoginScreen
 import pe.edu.upn.reciclatru.view.auth.RegisterScreen
+import pe.edu.upn.reciclatru.view.explore.AvailableOrderDetailScreen
 import pe.edu.upn.reciclatru.view.explore.AvailableOrdersScreen
 import pe.edu.upn.reciclatru.view.orders.CreateOrderScreen
+import pe.edu.upn.reciclatru.view.orders.EditOrderScreen
 import pe.edu.upn.reciclatru.view.orders.MyOrdersScreen
 import pe.edu.upn.reciclatru.view.orders.OrderDetailScreen
 import pe.edu.upn.reciclatru.view.profile.CompleteProfileScreen
@@ -27,6 +31,8 @@ import pe.edu.upn.reciclatru.view.profile.LocationScreen
 import pe.edu.upn.reciclatru.view.profile.ProfileScreen
 import pe.edu.upn.reciclatru.viewmodel.auth.LogoutViewModel
 import pe.edu.upn.reciclatru.viewmodel.session.AppSessionViewModel
+
+
 
 /**
  * Único `NavHost` de la app. Cada feature registra sus pantallas acá cuando su HU lo
@@ -110,9 +116,17 @@ fun AppNavHost(
                         onOpenOrder = { orderId -> navController.navigate(AppRoutes.orderDetail(orderId)) },
                     )
                 }
-                UserRole.Recycler -> AvailableOrdersScreen(
-                    onOpenProfile = { navController.navigate(AppRoutes.Profile) },
-                )
+                UserRole.Recycler -> {
+                    val orderUnavailable by entry.savedStateHandle
+                        .getStateFlow(AppRoutes.OrderUnavailableResult, false)
+                        .collectAsStateWithLifecycle()
+                    AvailableOrdersScreen(
+                        onOpenProfile = { navController.navigate(AppRoutes.Profile) },
+                        onOpenOrder = { orderId -> navController.navigate(AppRoutes.availableOrderDetail(orderId)) },
+                        orderUnavailable = orderUnavailable,
+                        onOrderUnavailableHandled = { entry.savedStateHandle[AppRoutes.OrderUnavailableResult] = false },
+                    )
+                }
                 null -> Box(modifier = Modifier.fillMaxSize())
             }
         }
@@ -120,7 +134,39 @@ fun AppNavHost(
             route = AppRoutes.OrderDetail,
             arguments = listOf(navArgument(AppRoutes.OrderIdArg) { type = NavType.StringType }),
         ) {
-            OrderDetailScreen(onBack = { navController.popBackStack() })
+            OrderDetailScreen(
+                onBack = { navController.popBackStack() },
+                onEdit = { orderId -> navController.navigate(AppRoutes.editOrder(orderId)) },
+            )
+        }
+        composable(
+            route = AppRoutes.EditOrder,
+            arguments = listOf(navArgument(AppRoutes.OrderIdArg) { type = NavType.StringType }),
+        ) {
+            EditOrderScreen(
+                onBack = { navController.popBackStack() },
+                onFinished = { message ->
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(AppRoutes.OrderEditResult, message)
+                    navController.popBackStack()
+                },
+            )
+        }
+        composable(
+            route = AppRoutes.AvailableOrderDetail,
+            arguments = listOf(navArgument(AppRoutes.OrderIdArg) { type = NavType.StringType }),
+        ) {
+            AvailableOrderDetailScreen(
+                onBack = { navController.popBackStack() },
+                onUnavailable = {
+                    navController.previousBackStackEntry
+                        ?.savedStateHandle
+                        ?.set(AppRoutes.OrderUnavailableResult, true)
+                    navController.popBackStack()
+                },
+                onCompleteProfile = { navController.navigate(AppRoutes.CompleteProfile) },
+            )
         }
         composable(AppRoutes.CreateOrder) {
             CreateOrderScreen(

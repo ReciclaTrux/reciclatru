@@ -17,10 +17,18 @@ object AppRoutes {
     const val OrderIdArg = "orderId"
     const val OrderDetail = "orders/detail/{orderId}"
     const val OrderPublishedResult = "order_published"
+    const val AvailableOrderDetail = "explore/detail/{orderId}"
+    const val OrderUnavailableResult = "order_unavailable"
+    const val EditOrder = "orders/edit/{orderId}"
+    const val OrderEditResult = "order_edit_result"
     const val ExpiredArg = "expired"
     const val Login = "auth/login?$ExpiredArg={$ExpiredArg}"
 
     fun login(expired: Boolean = false): String = "auth/login?$ExpiredArg=$expired"
 
     fun orderDetail(orderId: String): String = "orders/detail/$orderId"
+
+    fun availableOrderDetail(orderId: String): String = "explore/detail/$orderId"
+
+    fun editOrder(orderId: String): String = "orders/edit/$orderId"
 }

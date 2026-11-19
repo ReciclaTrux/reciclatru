@@ -5,7 +5,7 @@ Cada uno tiene su guía en `project/components/<Nombre>/README.md` (parámetros 
 recibe") y su vista previa con los estados a replicar. No se agregan componentes que no
 estén en esta lista.
 
-- `RtAcceptanceCard` → `RtAcceptanceCard.kt` — pendiente (lote 4)
+- `RtAcceptanceCard` → `RtAcceptanceCard.kt` — implementado (lote 4)
 - `RtAcceptedOrderCard` → `RtAcceptedOrderCard.kt` — pendiente (lote 4)
 - `RtActionBar` → `RtActionBar.kt` — implementado (lote 2)
 - `RtAvailableOrderCard` → `RtAvailableOrderCard.kt` — implementado (lote 4)
