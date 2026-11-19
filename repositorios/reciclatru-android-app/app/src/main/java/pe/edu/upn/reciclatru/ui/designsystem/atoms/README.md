@@ -5,7 +5,7 @@ Cada uno tiene su guía en `project/components/<Nombre>/README.md` (parámetros 
 recibe") y su vista previa con los estados a replicar. No se agregan componentes que no
 estén en esta lista.
 
-- `RtAcceptanceChip` → `RtAcceptanceChip.kt` — pendiente (lote 4)
+- `RtAcceptanceChip` → `RtAcceptanceChip.kt` — listo (parámetros propuestos, por confirmar con el diseño)
 - `RtAvatar` → `RtAvatar.kt` — implementado (lote 1)
 - `RtBadge` → `RtBadge.kt` — implementado (lote 1)
 - `RtButton` → `RtButton.kt` — implementado (lote 1)

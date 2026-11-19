@@ -14,6 +14,8 @@ data class Order(
     val createdAt: Instant? = null,
     val counterpart: OrderContact? = null,
     val canCancel: Boolean = false,
+    val canChooseRecycler: Boolean = false,
+    val canEdit: Boolean = false,
     val photos: List<OrderPhoto> = emptyList(),
 )
 

@@ -71,7 +71,10 @@ private const val ProfileDestination = "profile"
 @Composable
 fun AvailableOrdersScreen(
     onOpenProfile: () -> Unit,
+    onOpenOrder: (String) -> Unit,
     modifier: Modifier = Modifier,
+    orderUnavailable: Boolean = false,
+    onOrderUnavailableHandled: () -> Unit = {},
     viewModel: AvailableOrdersViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -93,6 +96,12 @@ fun AvailableOrdersScreen(
     LifecycleResumeEffect(Unit) {
         viewModel.onResume(context.hasLocationPermission())
         onPauseOrDispose { }
+    }
+    LaunchedEffect(orderUnavailable) {
+        if (orderUnavailable) {
+            onOrderUnavailableHandled()
+            snackbarHostState.showSnackbar("Este pedido ya no está disponible")
+        }
     }
     LaunchedEffect(state.message) {
         state.message?.let { message ->
@@ -125,6 +134,7 @@ fun AvailableOrdersScreen(
         onRetry = viewModel::onRetry,
         onLoadMore = viewModel::onLoadMore,
         onOpenProfile = onOpenProfile,
+        onOpenOrder = onOpenOrder,
         modifier = modifier,
     )
 }
@@ -154,6 +164,7 @@ private fun AvailableOrdersContent(
     onRetry: () -> Unit,
     onLoadMore: () -> Unit,
     onOpenProfile: () -> Unit,
+    onOpenOrder: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -253,6 +264,7 @@ private fun AvailableOrdersContent(
                             timeAgo = formatTimeAgo(order.createdAt),
                             alreadyAccepted = order.alreadyAccepted,
                             thumbnail = order.thumbnailUrl,
+                            onClick = { onOpenOrder(order.id) },
                         )
                     }
                     if (state.nextCursor != null) {
@@ -294,6 +306,7 @@ private fun AvailableOrdersPreview() {
             onRetry = {},
             onLoadMore = {},
             onOpenProfile = {},
+            onOpenOrder = {},
         )
     }
 }
@@ -312,6 +325,7 @@ private fun AvailableOrdersPromptPreview() {
             onRetry = {},
             onLoadMore = {},
             onOpenProfile = {},
+            onOpenOrder = {},
         )
     }
 }

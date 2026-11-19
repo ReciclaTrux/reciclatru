@@ -1,5 +1,7 @@
 package pe.edu.upn.reciclatru.viewmodel.orders
 
+
+
 import androidx.lifecycle.SavedStateHandle
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -16,14 +18,20 @@ import pe.edu.upn.reciclatru.data.remote.NetworkException
 import pe.edu.upn.reciclatru.domain.repository.orders.OrdersRepository
 import pe.edu.upn.reciclatru.domain.repository.orders.PendingPhotosStore
 import pe.edu.upn.reciclatru.domain.usecase.orders.CancelOrderUseCase
+import pe.edu.upn.reciclatru.domain.usecase.orders.ChooseRecyclerUseCase
+import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderAcceptancesUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.UploadOrderPhotosUseCase
+import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.Order
+import pe.edu.upn.reciclatru.model.orders.OrderAcceptance
 import pe.edu.upn.reciclatru.model.orders.OrderItem
 import pe.edu.upn.reciclatru.model.orders.OrderPhoto
 import pe.edu.upn.reciclatru.model.orders.OrderStatus
 import pe.edu.upn.reciclatru.model.orders.OrdersPage
 import pe.edu.upn.reciclatru.model.orders.OrdersTab
+
+
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class OrderDetailViewModelTest {
@@ -181,13 +189,159 @@ class OrderDetailViewModelTest {
     private fun createViewModel(
         repository: OrdersRepository,
         pendingPhotos: PendingPhotosStore = FakePendingPhotosStore(),
+        handle: SavedStateHandle = SavedStateHandle(mapOf(OrderDetailViewModel.OrderIdArg to "p1")),
     ) = OrderDetailViewModel(
-        savedStateHandle = SavedStateHandle(mapOf(OrderDetailViewModel.OrderIdArg to "p1")),
+        savedStateHandle = handle,
         getOrder = GetOrderUseCase(repository),
         cancelOrder = CancelOrderUseCase(repository),
+        getAcceptances = GetOrderAcceptancesUseCase(repository),
+        chooseRecycler = ChooseRecyclerUseCase(repository),
         uploadPhotos = UploadOrderPhotosUseCase(repository, pendingPhotos),
         pendingPhotos = pendingPhotos,
     )
+
+    @Test
+    fun `al volver de editar muestra el mensaje y recarga el pedido`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository()
+        val handle = SavedStateHandle(mapOf(OrderDetailViewModel.OrderIdArg to "p1"))
+        val viewModel = createViewModel(repository, handle = handle)
+        advanceUntilIdle()
+        val callsBefore = repository.getCalls
+
+        handle[OrderDetailViewModel.EditResultKey] = "Cambios guardados"
+        advanceUntilIdle()
+
+        assertEquals("Cambios guardados", viewModel.uiState.value.message)
+        assertEquals(callsBefore + 1, repository.getCalls)
+        assertNull(handle.get<String>(OrderDetailViewModel.EditResultKey))
+    }
+
+    private fun acceptance(id: String, name: String) = OrderAcceptance(
+        id = id,
+        status = AcceptanceStatus.Accepted,
+        fullName = name,
+        phone = "987654321",
+        acceptedAt = null,
+    )
+
+    private fun notPending() = NetworkException(
+        NetworkErrorKind.Conflict,
+        "El pedido ya no está pendiente.",
+        statusCode = 409,
+        code = "ORDER_NOT_PENDING",
+    )
+
+    @Test
+    fun `un pedido pendiente carga los recicladores que aceptaron`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(acceptances = listOf(acceptance("a1", "Juan Pérez")))
+        val viewModel = createViewModel(repository)
+
+        advanceUntilIdle()
+
+        assertEquals(listOf("a1"), viewModel.uiState.value.acceptances.map { it.id })
+        assertFalse(viewModel.uiState.value.acceptancesLoading)
+    }
+
+    @Test
+    fun `un pedido confirmado no pide aceptaciones`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(status = OrderStatus.Confirmed)
+        createViewModel(repository)
+
+        advanceUntilIdle()
+
+        assertEquals(0, repository.acceptanceCalls)
+    }
+
+    @Test
+    fun `si falla la lista de aceptaciones el pedido sigue visible`() = runTest(mainDispatcherRule.testDispatcher) {
+        val viewModel = createViewModel(FakeOrdersRepository(acceptancesError = noConnection()))
+
+        advanceUntilIdle()
+
+        assertEquals("p1", viewModel.uiState.value.order?.id)
+        assertEquals("No tienes conexión. Revisa tu red e inténtalo de nuevo.", viewModel.uiState.value.acceptancesError)
+    }
+
+    @Test
+    fun `elegir pide confirmacion antes de llamar a la API`() = runTest(mainDispatcherRule.testDispatcher) {
+        val juan = acceptance("a1", "Juan Pérez")
+        val repository = FakeOrdersRepository(acceptances = listOf(juan))
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onChooseClick(juan)
+
+        assertEquals(juan, viewModel.uiState.value.recyclerToChoose)
+        assertTrue(repository.chosen.isEmpty())
+
+        viewModel.onChooseDismissed()
+        assertNull(viewModel.uiState.value.recyclerToChoose)
+        assertTrue(repository.chosen.isEmpty())
+    }
+
+    @Test
+    fun `confirmar la eleccion deja el pedido confirmado`() = runTest(mainDispatcherRule.testDispatcher) {
+        val juan = acceptance("a1", "Juan Pérez")
+        val repository = FakeOrdersRepository(acceptances = listOf(juan))
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onChooseClick(juan)
+        viewModel.onChooseConfirmed()
+        advanceUntilIdle()
+
+        assertEquals(listOf("p1" to "a1"), repository.chosen)
+        assertEquals(OrderStatus.Confirmed, viewModel.uiState.value.order?.status)
+        assertNull(viewModel.uiState.value.recyclerToChoose)
+        assertFalse(viewModel.uiState.value.choosing)
+        assertTrue(viewModel.uiState.value.acceptances.isEmpty())
+        assertEquals("Elegiste a Juan", viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun `un segundo toque mientras hay un reciclador por confirmar se ignora`() = runTest(mainDispatcherRule.testDispatcher) {
+        val juan = acceptance("a1", "Juan Pérez")
+        val maria = acceptance("a2", "María Ríos")
+        val viewModel = createViewModel(FakeOrdersRepository(acceptances = listOf(juan, maria)))
+        advanceUntilIdle()
+
+        viewModel.onChooseClick(juan)
+        viewModel.onChooseClick(maria)
+
+        assertEquals(juan, viewModel.uiState.value.recyclerToChoose)
+    }
+
+    @Test
+    fun `si la API falla el pedido sigue pendiente y avisa`() = runTest(mainDispatcherRule.testDispatcher) {
+        val juan = acceptance("a1", "Juan Pérez")
+        val repository = FakeOrdersRepository(acceptances = listOf(juan), chooseError = noConnection())
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onChooseClick(juan)
+        viewModel.onChooseConfirmed()
+        advanceUntilIdle()
+
+        assertEquals(OrderStatus.Pending, viewModel.uiState.value.order?.status)
+        assertEquals("No tienes conexión. Revisa tu red e inténtalo de nuevo.", viewModel.uiState.value.message)
+        assertFalse(viewModel.uiState.value.choosing)
+    }
+
+    @Test
+    fun `si el pedido ya no esta pendiente recarga el estado actual`() = runTest(mainDispatcherRule.testDispatcher) {
+        val juan = acceptance("a1", "Juan Pérez")
+        val repository = FakeOrdersRepository(acceptances = listOf(juan), chooseError = notPending())
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+        val callsBefore = repository.getCalls
+
+        viewModel.onChooseClick(juan)
+        viewModel.onChooseConfirmed()
+        advanceUntilIdle()
+
+        assertEquals("Este pedido ya no está pendiente.", viewModel.uiState.value.message)
+        assertEquals(callsBefore + 1, repository.getCalls)
+    }
 
     private fun noConnection() = NetworkException(
         NetworkErrorKind.NoConnection,
@@ -199,8 +353,13 @@ class OrderDetailViewModelTest {
         private val getError: Exception? = null,
         private val cancelError: Exception? = null,
         private val uploadError: Exception? = null,
+        var acceptances: List<OrderAcceptance> = emptyList(),
+        var chooseError: Exception? = null,
+        var acceptancesError: Exception? = null,
     ) : OrdersRepository {
         val uploadedPhotos = mutableListOf<String>()
+        val chosen = mutableListOf<Pair<String, String>>()
+        var acceptanceCalls = 0
         var getCalls = 0
         var cancelCalls = 0
 
@@ -217,6 +376,23 @@ class OrderDetailViewModelTest {
         }
 
         override suspend fun createOrder(items: List<OrderItem>): Order = order("new", OrderStatus.Pending)
+
+        override suspend fun updateOrder(id: String, items: List<OrderItem>): Order =
+            order(id, status)
+
+        override suspend fun removePhoto(orderId: String, photoId: String) = Unit
+
+        override suspend fun getAcceptances(orderId: String): List<OrderAcceptance> {
+            acceptanceCalls++
+            acceptancesError?.let { throw it }
+            return acceptances
+        }
+
+        override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order {
+            chosen += orderId to acceptanceId
+            chooseError?.let { throw it }
+            return order(orderId, OrderStatus.Confirmed)
+        }
 
         override suspend fun uploadPhoto(orderId: String, photo: String): OrderPhoto {
             uploadError?.let { throw it }

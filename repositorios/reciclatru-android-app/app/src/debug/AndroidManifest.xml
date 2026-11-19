@@ -3,17 +3,13 @@
 
     <!-- Solo debug: el backend de desarrollo corre en http://10.0.2.2:3000. -->
     <application android:usesCleartextTraffic="true">
+        <!-- Sin icono de inicio, para que el build debug arranque en la app real (Appetize,
+             dispositivos). Se abre con: adb shell am start -n pe.edu.upn.reciclatru/.ui.catalog.RtCatalogActivity -->
         <activity
             android:name=".ui.catalog.RtCatalogActivity"
             android:exported="true"
             android:label="@string/catalog_app_name"
-            android:theme="@style/Theme.ReciclaTru">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
+            android:theme="@style/Theme.ReciclaTru" />
     </application>
 
 </manifest>

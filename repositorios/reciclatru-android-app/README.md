@@ -115,8 +115,8 @@ En Windows usar `.\gradlew.bat`:
 ./gradlew connectedAndroidTest # UI con emulador/dispositivo
 ```
 
-El catálogo del sistema de diseño se abre solo en debug:
-`pe.edu.upn.reciclatru/.ui.catalog.RtCatalogActivity`.
+El catálogo del sistema de diseño se abre solo en debug y no tiene icono de inicio:
+`adb shell am start -n pe.edu.upn.reciclatru/.ui.catalog.RtCatalogActivity`.
 
 ## Pendientes conocidos
 

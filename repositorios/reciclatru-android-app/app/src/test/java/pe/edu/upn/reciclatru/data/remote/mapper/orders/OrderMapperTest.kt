@@ -1,15 +1,21 @@
 package pe.edu.upn.reciclatru.data.remote.mapper.orders
 
+
 import com.google.gson.Gson
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
+import pe.edu.upn.reciclatru.data.remote.dto.orders.AcceptanceListOutputDto
 import pe.edu.upn.reciclatru.data.remote.dto.orders.ServicingOrderListOutputDto
 import pe.edu.upn.reciclatru.data.remote.dto.orders.ServicingOrderOutputDto
+import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.OrderItem
 import pe.edu.upn.reciclatru.model.orders.OrderStatus
 import pe.edu.upn.reciclatru.model.orders.OrdersTab
 import java.time.Instant
+
 
 class OrderMapperTest {
 
@@ -50,6 +56,70 @@ class OrderMapperTest {
         assertEquals(OrderStatus.Pending, order?.status)
         assertEquals(2, order?.items?.size)
         assertEquals(12.5, order?.totalWeightKg ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `las aceptaciones se convierten y se descartan las incompletas`() {
+        val json = """
+            { "items": [
+              { "id": "a1", "status": "ACCEPTED", "fullName": "Juan Pérez", "phone": "987654321",
+                "acceptedAt": "2026-11-18T15:42:00Z" },
+              { "id": "a2", "status": "CHOSEN", "fullName": "María Ríos", "phone": "948120337" },
+              { "id": "a3", "status": "ACCEPTED", "fullName": "Sin teléfono" }
+            ] }
+        """.trimIndent()
+
+        val acceptances = gson.fromJson(json, AcceptanceListOutputDto::class.java).toAcceptances()
+
+        assertEquals(listOf("a1", "a2"), acceptances.map { it.id })
+        assertEquals(AcceptanceStatus.Chosen, acceptances[1].status)
+        assertEquals(Instant.parse("2026-11-18T15:42:00Z"), acceptances[0].acceptedAt)
+    }
+
+    @Test
+    fun `elegir reciclador envia solo el id de la aceptacion`() {
+        assertEquals("""{"acceptanceId":"a1"}""", gson.toJson("a1".toChooseRecyclerRequest()))
+    }
+
+    @Test
+    fun `la accion CHOOSE_RECYCLER habilita la eleccion`() {
+        val json = """
+            { "servicingOrderInstanceRecord": { "id": "1", "status": "PENDING", "items": [],
+              "totalWeightKg": 0, "availableActions": ["CANCEL", "CHOOSE_RECYCLER"] } }
+        """.trimIndent()
+
+        assertTrue(gson.fromJson(json, ServicingOrderOutputDto::class.java).toOrder()?.canChooseRecycler == true)
+    }
+
+    @Test
+    fun `la accion EDIT habilita editar y su ausencia lo impide`() {
+        fun order(actions: String) = gson.fromJson(
+            """{ "servicingOrderInstanceRecord": { "id": "1", "status": "PENDING", "items": [],
+                 "totalWeightKg": 0, "acceptanceCount": 0, "availableActions": $actions } }""",
+            ServicingOrderOutputDto::class.java,
+        ).toOrder()
+
+        assertTrue(order("""["EDIT", "CANCEL"]""")?.canEdit == true)
+        assertFalse(order("""["CANCEL"]""")?.canEdit == true)
+    }
+
+    @Test
+    fun `sin acciones solo se edita un pendiente sin aceptaciones`() {
+        fun order(count: Int) = gson.fromJson(
+            """{ "servicingOrderInstanceRecord": { "id": "1", "status": "PENDING", "items": [],
+                 "totalWeightKg": 0, "acceptanceCount": $count } }""",
+            ServicingOrderOutputDto::class.java,
+        ).toOrder()
+
+        assertTrue(order(0)?.canEdit == true)
+        assertFalse(order(2)?.canEdit == true)
+    }
+
+    @Test
+    fun `el cuerpo de editar sigue el contrato`() {
+        val request = listOf(OrderItem("Cartón corrugado", 8.0)).toUpdateRequest()
+
+        assertEquals("""{"items":[{"description":"Cartón corrugado","weightKg":8.0}]}""", gson.toJson(request))
     }
 
     @Test
