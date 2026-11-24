@@ -11,6 +11,16 @@ abstract final class RtSpacing {
   /// Separación entre la etiqueta y el campo, y entre el campo y su ayuda
   /// (`bundle.css`, `.rt-field`).
   static const double fieldLabelGap = 6;
+
+  /// Padding derecho de `RtStatusChip` (`bundle.css`, `.rt-chip`).
+  static const double chipPaddingEnd = 10;
+
+  /// Separación entre líneas de `RtMetaRow` (`bundle.css`, `.rt-meta`).
+  static const double metaRowGap = 2;
+
+  /// Separación entre el ícono y el texto del recuadro de agregar foto
+  /// (`bundle.css`, `.rt-thumb--add`).
+  static const double photoAddGap = 2;
 }
 
 /// Tamaños fijos del sistema (`tokens.json`, `size`).
@@ -63,4 +73,23 @@ abstract final class RtSize {
 
   /// Radio de la opción de `RtRoleSelector` (`.rt-role__radio`).
   static const double roleRadio = 22;
+
+  /// Alto de `RtStatusChip` (`.rt-chip`).
+  static const double chipHeight = 28;
+
+  /// Círculo de quitar foto de `RtPhotoThumb` (`.rt-thumb__remove`).
+  static const double thumbRemove = 28;
+
+  /// Columna del peso en `RtItemRow` (`.rt-item`).
+  static const double itemWeightColumn = 112;
+
+  /// Separación entre la etiqueta de la fila y el botón de quitar
+  /// (`.rt-item .rt-iconbtn`).
+  static const double itemRemoveOffset = 30;
+
+  /// Borde inferior de la pestaña activa de `RtTabs` (`.rt-tab`).
+  static const double tabIndicator = 3;
+
+  /// Íconos del pie de `RtOrderCard` (`.rt-card__foot .rt-icon`).
+  static const double cardFootIcon = 20;
 }

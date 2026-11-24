@@ -29,6 +29,9 @@ abstract final class RtTypography {
   /// Iniciales de [RtAvatar]: 15/15 700 según la vista previa del sistema.
   static TextStyle get avatarInitials => _style(15, 15, FontWeight.w700);
 
+  /// Texto del recuadro de agregar foto (`bundle.css`, `.rt-thumb--add`).
+  static TextStyle get photoAddLabel => _style(12, 16, FontWeight.w600);
+
   static TextStyle _style(
     double fontSize,
     double lineHeight,

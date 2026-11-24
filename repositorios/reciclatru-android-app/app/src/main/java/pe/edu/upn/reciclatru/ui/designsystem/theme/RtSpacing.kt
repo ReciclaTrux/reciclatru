@@ -11,6 +11,12 @@ object RtSpacing {
     val s5 = 24.dp
     val s6 = 32.dp
     val s7 = 48.dp
+
+    /** Separación entre la etiqueta de un campo y su ayuda/error (`field-label-gap`). */
+    val fieldLabelGap = 6.dp
+    val chipPaddingEnd = 10.dp
+    val metaRowGap = 2.dp
+    val photoAddGap = 2.dp
 }
 
 /** Medidas fijas de controles (familia `size` del sistema). */
@@ -41,6 +47,11 @@ object RtSize {
     val navPillWidth = 64.dp
     val navPillHeight = 32.dp
     val roleRadio = 22.dp
+    val chipHeight = 28.dp
+    val thumbRemove = 28.dp
+    val itemWeightColumn = 112.dp
+    val itemRemoveOffset = 30.dp
+    val cardFootIcon = 20.dp
 }
 
 /** Radios (`radius-sm`, `radius-md`, `radius-lg`, `radius-full`). */
@@ -65,4 +76,8 @@ object RtStroke {
     val roleRadioSelected = 7.dp
     val mapStreetMain = 14.dp
     val mapStreetSecondary = 6.dp
+    val tabIndicator = 3.dp
+    val cardChosen = 2.dp
+    val dashOn = 4.dp
+    val dashOff = 3.dp
 }

@@ -23,6 +23,9 @@ abstract final class RtStroke {
   /// Trazo de [RtSpinner] grande.
   static const double spinnerLarge = 3;
 
+  /// Borde de la tarjeta Elegido (`.rt-card--chosen`).
+  static const double cardChosen = 2;
+
   /// Divisor de 1 px (`--outline`).
   static const double divider = 1;
 
