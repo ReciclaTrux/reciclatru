@@ -4,8 +4,8 @@ import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.text.googlefonts.GoogleFont
+import androidx.compose.ui.text.googlefonts.Font
 import androidx.compose.ui.unit.sp
 import pe.edu.upn.reciclatru.R
 
@@ -113,5 +113,13 @@ object RtTextStyles {
         fontWeight = FontWeight.Bold,
         fontSize = 15.sp,
         lineHeight = 15.sp,
+    )
+
+    /** Rótulo del recuadro "Agregar foto" de RtPhotoPicker: 12/16 600. */
+    val photoAddLabel = TextStyle(
+        fontFamily = RtFontFamily,
+        fontWeight = FontWeight.SemiBold,
+        fontSize = 12.sp,
+        lineHeight = 16.sp,
     )
 }

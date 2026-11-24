@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
  * (`level3`). Ningún otro elemento tiene sombra.
  */
 object RtElevation {
+    val none = 0.dp
     val level1 = 3.dp
     val level2 = 6.dp
     val level3 = 24.dp
