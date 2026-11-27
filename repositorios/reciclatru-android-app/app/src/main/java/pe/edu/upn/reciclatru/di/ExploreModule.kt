@@ -13,9 +13,11 @@ import pe.edu.upn.reciclatru.data.local.explore.FusedDeviceLocationProvider
 import pe.edu.upn.reciclatru.data.local.explore.SharedPrefsLocationPromptStore
 import pe.edu.upn.reciclatru.data.remote.api.explore.ExploreApi
 import pe.edu.upn.reciclatru.data.repository.explore.ExploreRepositoryImpl
+import pe.edu.upn.reciclatru.data.repository.explore.MyAcceptancesRepositoryImpl
 import pe.edu.upn.reciclatru.domain.repository.explore.DeviceLocationProvider
 import pe.edu.upn.reciclatru.domain.repository.explore.ExploreRepository
 import pe.edu.upn.reciclatru.domain.repository.explore.LocationPromptStore
+import pe.edu.upn.reciclatru.domain.repository.explore.MyAcceptancesRepository
 import retrofit2.Retrofit
 import javax.inject.Singleton
 
@@ -26,6 +28,10 @@ abstract class ExploreModule {
     @Binds
     @Singleton
     abstract fun bindExploreRepository(implementation: ExploreRepositoryImpl): ExploreRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindMyAcceptancesRepository(implementation: MyAcceptancesRepositoryImpl): MyAcceptancesRepository
 
     @Binds
     @Singleton

@@ -139,6 +139,12 @@ fun AvailableOrderDetailScreen(
     }
 }
 
+private val ClosedStates = setOf(
+    RtAcceptanceState.NotChosen,
+    RtAcceptanceState.CancelledByNeighbor,
+    RtAcceptanceState.Collected,
+)
+
 @Composable
 private fun AvailableOrderDetailContent(
     state: AvailableOrderDetailUiState,
@@ -155,7 +161,8 @@ private fun AvailableOrderDetailContent(
         topBar = { RtTopAppBar(title = "Detalle del pedido", onBack = onBack) },
         snackbarHost = { RtSnackbarHost(snackbarHostState) },
         bottomBar = {
-            if (!state.loading && order != null) {
+            val closed = order?.alreadyAccepted == true && order.acceptanceState() in ClosedStates
+            if (!state.loading && order != null && !closed) {
                 RtActionBar(
                     primary = {
                         if (order.alreadyAccepted) {
@@ -245,6 +252,7 @@ private fun AvailableBody(order: AvailableOrderDetail) {
 private fun AcceptedBody(order: AvailableOrderDetail) {
     val context = LocalContext.current
     val neighbor = order.neighbor
+    val acceptanceState = order.acceptanceState()
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -258,20 +266,11 @@ private fun AcceptedBody(order: AvailableOrderDetail) {
             modifier = Modifier.weight(1f).testTag("zona_pedido"),
         )
         RtAcceptanceChip(
-            state = if (order.acceptanceStatus == AcceptanceStatus.Chosen) {
-                RtAcceptanceState.Chosen
-            } else {
-                RtAcceptanceState.Waiting
-            },
+            state = acceptanceState,
             modifier = Modifier.testTag("chip_aceptacion"),
         )
     }
-    RtInlineAlert(
-        tone = RtInlineAlertTone.Success,
-        title = "Aceptaste el pedido",
-        message = "El vecino elegirá a un reciclador. Desliza hacia abajo en Aceptados para saber si te eligió.",
-        modifier = Modifier.testTag("alert_aceptado"),
-    )
+    AcceptanceAlert(state = acceptanceState)
     if (neighbor != null) {
         val shape = RoundedCornerShape(RtRadius.lg)
         Column(
@@ -299,21 +298,23 @@ private fun AcceptedBody(order: AvailableOrderDetail) {
                     }
                 },
             )
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(RtSpacing.s2),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Icon(
-                    imageVector = Icons.Rounded.Lock,
-                    contentDescription = null,
-                    modifier = Modifier.size(RtSize.iconCaption),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-                Text(
-                    text = "La dirección se muestra solo si te elige.",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+            if (acceptanceState == RtAcceptanceState.Waiting) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(RtSpacing.s2),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Rounded.Lock,
+                        contentDescription = null,
+                        modifier = Modifier.size(RtSize.iconCaption),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = "La dirección se muestra solo si te elige.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
     }
@@ -353,6 +354,43 @@ private fun AcceptedBody(order: AvailableOrderDetail) {
             ),
         )
     }
+}
+
+@Composable
+private fun AcceptanceAlert(state: RtAcceptanceState) {
+    val (tone, title, message) = when (state) {
+        RtAcceptanceState.Waiting -> Triple(
+            RtInlineAlertTone.Success,
+            "Aceptaste el pedido",
+            "El vecino elegirá a un reciclador. Desliza hacia abajo en Aceptados para saber si te eligió.",
+        )
+        RtAcceptanceState.Chosen -> Triple(
+            RtInlineAlertTone.Success,
+            "El vecino te eligió",
+            "Coordina con el vecino y ve a recoger el pedido.",
+        )
+        RtAcceptanceState.NotChosen -> Triple(
+            RtInlineAlertTone.Info,
+            "El vecino eligió a otro reciclador",
+            "Este pedido ya no está disponible para ti.",
+        )
+        RtAcceptanceState.CancelledByNeighbor -> Triple(
+            RtInlineAlertTone.Warning,
+            "El vecino canceló el pedido",
+            "Este pedido ya no se recogerá.",
+        )
+        RtAcceptanceState.Collected -> Triple(
+            RtInlineAlertTone.Success,
+            "Pedido recolectado",
+            "Gracias por ayudar a reciclar en Trujillo.",
+        )
+    }
+    RtInlineAlert(
+        tone = tone,
+        title = title,
+        message = message,
+        modifier = Modifier.testTag("alert_aceptado"),
+    )
 }
 
 private fun orderMeta(order: AvailableOrderDetail): List<RtMeta> = listOfNotNull(

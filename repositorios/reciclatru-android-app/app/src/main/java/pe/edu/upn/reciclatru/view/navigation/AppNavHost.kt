@@ -22,6 +22,7 @@ import pe.edu.upn.reciclatru.view.auth.LoginScreen
 import pe.edu.upn.reciclatru.view.auth.RegisterScreen
 import pe.edu.upn.reciclatru.view.explore.AvailableOrderDetailScreen
 import pe.edu.upn.reciclatru.view.explore.AvailableOrdersScreen
+import pe.edu.upn.reciclatru.view.explore.MyAcceptancesScreen
 import pe.edu.upn.reciclatru.view.orders.CreateOrderScreen
 import pe.edu.upn.reciclatru.view.orders.EditOrderScreen
 import pe.edu.upn.reciclatru.view.orders.MyOrdersScreen
@@ -121,6 +122,9 @@ fun AppNavHost(
                         .getStateFlow(AppRoutes.OrderUnavailableResult, false)
                         .collectAsStateWithLifecycle()
                     AvailableOrdersScreen(
+                        onOpenAccepted = {
+                            navController.navigate(AppRoutes.MyAcceptances) { launchSingleTop = true }
+                        },
                         onOpenProfile = { navController.navigate(AppRoutes.Profile) },
                         onOpenOrder = { orderId -> navController.navigate(AppRoutes.availableOrderDetail(orderId)) },
                         orderUnavailable = orderUnavailable,
@@ -151,6 +155,13 @@ fun AppNavHost(
                         ?.set(AppRoutes.OrderEditResult, message)
                     navController.popBackStack()
                 },
+            )
+        }
+        composable(AppRoutes.MyAcceptances) {
+            MyAcceptancesScreen(
+                onOpenAvailable = { navController.popBackStack(AppRoutes.Home, inclusive = false) },
+                onOpenProfile = { navController.navigate(AppRoutes.Profile) },
+                onOpenOrder = { orderId -> navController.navigate(AppRoutes.availableOrderDetail(orderId)) },
             )
         }
         composable(

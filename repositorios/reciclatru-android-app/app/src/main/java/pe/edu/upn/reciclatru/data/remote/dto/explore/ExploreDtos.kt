@@ -19,3 +19,16 @@ data class AvailableOrderDto(
     @SerializedName("alreadyAccepted") val alreadyAccepted: Boolean? = null,
     @SerializedName("createdAt") val createdAt: String? = null,
 )
+
+data class MyAcceptanceListOutputDto(
+    @SerializedName("items") val items: List<MyAcceptanceDto>? = null,
+    @SerializedName("nextCursor") val nextCursor: String? = null,
+)
+
+data class MyAcceptanceDto(
+    @SerializedName("orderId") val orderId: String? = null,
+    @SerializedName("acceptanceLabel") val acceptanceLabel: String? = null,
+    @SerializedName("zone") val zone: String? = null,
+    @SerializedName("totalWeightKg") val totalWeightKg: Double? = null,
+    @SerializedName("acceptedAt") val acceptedAt: String? = null,
+)
