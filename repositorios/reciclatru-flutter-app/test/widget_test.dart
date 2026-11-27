@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_avatar.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_button.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_text_field.dart';
-import 'package:reciclatru/core/design_system/theme/rt_colors.dart';
-import 'package:reciclatru/core/design_system/theme/rt_theme.dart';
-import 'package:reciclatru/core/network/health_api.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_avatar.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_button.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_text_field.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_colors.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_theme.dart';
+import 'package:reciclatru/data/remote/api/health/health_api.dart';
+import 'package:reciclatru/di/health_module.dart';
 import 'package:reciclatru/main.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -24,7 +25,8 @@ void main() {
       ),
     );
 
-    expect(find.text('ReciclaTru'), findsOneWidget);
+    expect(find.text('Hola de nuevo'), findsOneWidget);
+    expect(find.byKey(const Key('input_correo')), findsOneWidget);
 
     final context = tester.element(find.byType(Scaffold));
     expect(Theme.of(context).extension<RtExtraColors>(), isNotNull);
@@ -32,8 +34,8 @@ void main() {
   });
 
   testWidgets('RtAvatar usa las iniciales del nombre y apellido', (
-    tester,
-  ) async {
+      tester,
+      ) async {
     await tester.pumpWidget(_wrap(const RtAvatar(name: 'Juan Pérez')));
 
     expect(find.text('JP'), findsOneWidget);
