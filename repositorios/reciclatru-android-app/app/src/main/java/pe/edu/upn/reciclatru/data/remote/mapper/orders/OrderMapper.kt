@@ -53,6 +53,8 @@ fun ServicingOrderOutputDto.toOrder(): Order? {
             ?: (status == OrderStatus.Pending && (record.acceptanceCount ?: 0) > 0),
         canEdit = record.availableActions?.contains(EditAction)
             ?: (status == OrderStatus.Pending && (record.acceptanceCount ?: 0) == 0),
+        canMarkCollected = record.availableActions?.contains(MarkCollectedAction)
+            ?: (status == OrderStatus.Confirmed),
         photos = record.photos.orEmpty().mapNotNull { it.toOrderPhoto() },
     )
 }
@@ -65,6 +67,7 @@ fun OrderPhotoDto.toOrderPhoto(): OrderPhoto? {
 
 private const val CancelAction = "CANCEL"
 private const val EditAction = "EDIT"
+private const val MarkCollectedAction = "MARK_COLLECTED"
 
 fun List<OrderItem>.toUpdateRequest(): ServicingOrderUpdateRequestDto =
     ServicingOrderUpdateRequestDto(

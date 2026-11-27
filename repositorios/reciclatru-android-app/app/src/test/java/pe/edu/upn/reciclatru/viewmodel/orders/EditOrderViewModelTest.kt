@@ -286,6 +286,8 @@ class EditOrderViewModelTest {
 
         override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order = order(orderId)
 
+        override suspend fun markCollected(id: String): Order = order(id)
+
         private fun order(id: String) = Order(
             id = id,
             status = OrderStatus.Pending,

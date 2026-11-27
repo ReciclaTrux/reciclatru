@@ -95,6 +95,7 @@ fun OrderDetailScreen(
         onRetry = viewModel::onRetry,
         onRefresh = viewModel::onRefresh,
         onCancel = viewModel::onCancelClick,
+        onMarkCollected = viewModel::onCollectClick,
         onEdit = { state.order?.let { order -> onEdit(order.id) } },
         onRetryPhotos = viewModel::onRetryPhotos,
         onRetryAcceptances = viewModel::onRetryAcceptances,
@@ -115,6 +116,18 @@ fun OrderDetailScreen(
     }
 
     val order = state.order
+    if (state.collectDialogVisible && order != null) {
+        val recyclerName = order.counterpart?.fullName ?: order.chosenRecyclerName
+        RtConfirmDialog(
+            title = "¿${recyclerName ?: "El reciclador"} ya recogió tu material?",
+            message = "Esta acción no se puede deshacer.",
+            confirmLabel = "Sí, recolectado",
+            onConfirm = viewModel::onCollectConfirmed,
+            onDismiss = viewModel::onCollectDismissed,
+            loading = state.collecting,
+            modifier = Modifier.testTag("dialog_marcar_recolectado"),
+        )
+    }
     if (state.cancelDialogVisible && order != null) {
         CancelOrderDialog(
             order = order,
@@ -187,6 +200,7 @@ private fun OrderDetailContent(
     onRetryPhotos: () -> Unit,
     modifier: Modifier = Modifier,
     onEdit: () -> Unit = {},
+    onMarkCollected: () -> Unit = {},
     onRetryAcceptances: () -> Unit = {},
     onChoose: (OrderAcceptance) -> Unit = {},
 ) {
@@ -206,7 +220,19 @@ private fun OrderDetailContent(
                         modifier = Modifier.testTag("btn_cancelar_pedido"),
                     )
                 }
-                if (state.order?.canEdit == true) {
+                if (state.order?.canMarkCollected == true) {
+                    RtActionBar(
+                        primary = {
+                            RtButton(
+                                text = "Recolectado",
+                                onClick = onMarkCollected,
+                                fullWidth = true,
+                                modifier = Modifier.testTag("btn_marcar_recolectado"),
+                            )
+                        },
+                        secondary = cancelButton,
+                    )
+                } else if (state.order?.canEdit == true) {
                     RtActionBar(
                         primary = {
                             RtButton(
@@ -493,6 +519,7 @@ private fun previewOrder(
     createdAt = Instant.now(),
     counterpart = counterpart,
     canCancel = status == OrderStatus.Pending || status == OrderStatus.Confirmed,
+    canMarkCollected = status == OrderStatus.Confirmed,
     canChooseRecycler = canChooseRecycler,
 )
 

@@ -12,6 +12,8 @@ data class OrderDetailUiState(
     val loadError: String? = null,
     val cancelDialogVisible: Boolean = false,
     val cancelling: Boolean = false,
+    val collectDialogVisible: Boolean = false,
+    val collecting: Boolean = false,
     val acceptances: List<OrderAcceptance> = emptyList(),
     val acceptancesLoading: Boolean = false,
     val acceptancesError: String? = null,

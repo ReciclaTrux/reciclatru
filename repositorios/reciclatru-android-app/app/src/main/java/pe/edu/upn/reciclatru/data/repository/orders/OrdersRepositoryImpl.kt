@@ -69,6 +69,13 @@ class OrdersRepositoryImpl @Inject constructor(
             ?: throw unexpectedResponse()
     }
 
+    override suspend fun markCollected(id: String): Order = withContext(ioDispatcher) {
+        apiCall { api.markCollected(id) }
+            .getOrElse { error -> throw error }
+            .toOrder()
+            ?: throw unexpectedResponse()
+    }
+
     override suspend fun updateOrder(id: String, items: List<OrderItem>): Order = withContext(ioDispatcher) {
         apiCall { api.updateOrder(id, items.toUpdateRequest()) }
             .getOrElse { error -> throw error }
