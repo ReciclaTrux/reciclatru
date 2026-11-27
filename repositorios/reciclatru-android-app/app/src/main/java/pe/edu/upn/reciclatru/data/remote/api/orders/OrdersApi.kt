@@ -39,6 +39,9 @@ interface OrdersApi {
     @PUT("servicing-order/{id}/termination")
     suspend fun cancelOrder(@Path("id") id: String): ServicingOrderOutputDto
 
+    @PUT("servicing-order/{id}/fulfillment/execution")
+    suspend fun markCollected(@Path("id") id: String): ServicingOrderOutputDto
+
     @PUT("servicing-order/{id}/update")
     suspend fun updateOrder(
         @Path("id") id: String,

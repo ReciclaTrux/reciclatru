@@ -14,6 +14,7 @@ interface OrdersRepository {
     suspend fun getMyOrders(tab: OrdersTab, cursor: String?): OrdersPage
     suspend fun getOrder(id: String): Order
     suspend fun cancelOrder(id: String): Order
+    suspend fun markCollected(id: String): Order
     suspend fun updateOrder(id: String, items: List<OrderItem>): Order
     suspend fun removePhoto(orderId: String, photoId: String)
     suspend fun getAcceptances(orderId: String): List<OrderAcceptance>

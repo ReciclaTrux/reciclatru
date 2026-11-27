@@ -326,6 +326,9 @@ class CreateOrderViewModelTest {
 
         override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order =
             error("No se usa en este test")
+
+        override suspend fun markCollected(id: String): Order =
+            error("No se usa en este test")
         val uploadedPhotos = mutableListOf<Pair<String, String>>()
         var createCalls = 0
         var lastItems: List<OrderItem> = emptyList()

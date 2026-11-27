@@ -21,6 +21,7 @@ import pe.edu.upn.reciclatru.domain.usecase.orders.CancelOrderUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.ChooseRecyclerUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderAcceptancesUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderUseCase
+import pe.edu.upn.reciclatru.domain.usecase.orders.MarkOrderCollectedUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.UploadOrderPhotosUseCase
 import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.Order
@@ -198,6 +199,7 @@ class OrderDetailViewModelTest {
         chooseRecycler = ChooseRecyclerUseCase(repository),
         uploadPhotos = UploadOrderPhotosUseCase(repository, pendingPhotos),
         pendingPhotos = pendingPhotos,
+        markCollected = MarkOrderCollectedUseCase(repository),
     )
 
     @Test
@@ -343,6 +345,105 @@ class OrderDetailViewModelTest {
         assertEquals(callsBefore + 1, repository.getCalls)
     }
 
+    @Test
+    fun `marcar recolectado pide confirmacion antes de llamar a la API`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val repository = FakeOrdersRepository(status = OrderStatus.Confirmed)
+            val viewModel = createViewModel(repository)
+            advanceUntilIdle()
+
+            viewModel.onCollectClick()
+            assertTrue(viewModel.uiState.value.collectDialogVisible)
+            viewModel.onCollectDismissed()
+            advanceUntilIdle()
+
+            assertFalse(viewModel.uiState.value.collectDialogVisible)
+            assertEquals(0, repository.collectCalls)
+        }
+
+    @Test
+    fun `solo un pedido confirmado se puede marcar como recolectado`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val viewModel = createViewModel(FakeOrdersRepository(status = OrderStatus.Pending))
+            advanceUntilIdle()
+
+            viewModel.onCollectClick()
+
+            assertFalse(viewModel.uiState.value.collectDialogVisible)
+        }
+
+    @Test
+    fun `al confirmar el pedido pasa a recolectado y ya no se puede cancelar`() =
+        runTest(mainDispatcherRule.testDispatcher) {
+            val repository = FakeOrdersRepository(status = OrderStatus.Confirmed)
+            val viewModel = createViewModel(repository)
+            advanceUntilIdle()
+
+            viewModel.onCollectClick()
+            viewModel.onCollectConfirmed()
+            advanceUntilIdle()
+
+            val state = viewModel.uiState.value
+            assertEquals(OrderStatus.Collected, state.order?.status)
+            assertFalse(state.order?.canCancel == true)
+            assertFalse(state.order?.canMarkCollected == true)
+            assertFalse(state.collectDialogVisible)
+            assertEquals("Pedido recolectado", state.message)
+        }
+
+    @Test
+    fun `dos toques seguidos marcan el pedido una sola vez`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(status = OrderStatus.Confirmed)
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onCollectClick()
+        viewModel.onCollectConfirmed()
+        viewModel.onCollectConfirmed()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.collectCalls)
+    }
+
+    @Test
+    fun `si falla al marcar avisa y el pedido sigue confirmado`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(status = OrderStatus.Confirmed, collectError = noConnection())
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        viewModel.onCollectClick()
+        viewModel.onCollectConfirmed()
+        advanceUntilIdle()
+
+        val state = viewModel.uiState.value
+        assertEquals(OrderStatus.Confirmed, state.order?.status)
+        assertFalse(state.collecting)
+        assertEquals("No tienes conexión. Revisa tu red e inténtalo de nuevo.", state.message)
+    }
+
+    @Test
+    fun `si el pedido ya no esta confirmado avisa y recarga`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeOrdersRepository(
+            status = OrderStatus.Confirmed,
+            collectError = NetworkException(
+                NetworkErrorKind.Conflict,
+                "Solo se puede marcar como recolectado un pedido confirmado.",
+                statusCode = 409,
+                code = "ORDER_NOT_CONFIRMED",
+            ),
+        )
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+        val callsBefore = repository.getCalls
+
+        viewModel.onCollectClick()
+        viewModel.onCollectConfirmed()
+        advanceUntilIdle()
+
+        assertEquals("Este pedido ya no está confirmado.", viewModel.uiState.value.message)
+        assertEquals(callsBefore + 1, repository.getCalls)
+    }
+
     private fun noConnection() = NetworkException(
         NetworkErrorKind.NoConnection,
         "No tienes conexión. Revisa tu red e inténtalo de nuevo.",
@@ -356,12 +457,14 @@ class OrderDetailViewModelTest {
         var acceptances: List<OrderAcceptance> = emptyList(),
         var chooseError: Exception? = null,
         var acceptancesError: Exception? = null,
+        var collectError: Exception? = null,
     ) : OrdersRepository {
         val uploadedPhotos = mutableListOf<String>()
         val chosen = mutableListOf<Pair<String, String>>()
         var acceptanceCalls = 0
         var getCalls = 0
         var cancelCalls = 0
+        var collectCalls = 0
 
         override suspend fun getOrder(id: String): Order {
             getCalls++
@@ -373,6 +476,12 @@ class OrderDetailViewModelTest {
             cancelCalls++
             cancelError?.let { throw it }
             return order(id, OrderStatus.Cancelled)
+        }
+
+        override suspend fun markCollected(id: String): Order {
+            collectCalls++
+            collectError?.let { throw it }
+            return order(id, OrderStatus.Collected)
         }
 
         override suspend fun createOrder(items: List<OrderItem>): Order = order("new", OrderStatus.Pending)
@@ -409,6 +518,7 @@ class OrderDetailViewModelTest {
             items = listOf(OrderItem("Cartón", 5.0)),
             totalWeightKg = 5.0,
             canCancel = status == OrderStatus.Pending || status == OrderStatus.Confirmed,
+            canMarkCollected = status == OrderStatus.Confirmed,
         )
     }
 }

@@ -209,6 +209,19 @@ class OrderMapperTest {
     }
 
     @Test
+    fun `solo un pedido confirmado se puede marcar como recolectado`() {
+        fun order(status: String, actions: String) = gson.fromJson(
+            """{ "servicingOrderInstanceRecord": { "id": "p1", "status": "$status", "items": [],
+                 "totalWeightKg": 4.0, "availableActions": $actions } }""",
+            ServicingOrderOutputDto::class.java,
+        ).toOrder()
+
+        assertEquals(true, order("CONFIRMED", "[\"MARK_COLLECTED\", \"CANCEL\"]")?.canMarkCollected)
+        assertEquals(false, order("PENDING", "[\"CANCEL\"]")?.canMarkCollected)
+        assertEquals(false, order("COLLECTED", "[]")?.canMarkCollected)
+    }
+
+    @Test
     fun `las fotos del pedido llegan con su direccion completa`() {
         val json = """
             {

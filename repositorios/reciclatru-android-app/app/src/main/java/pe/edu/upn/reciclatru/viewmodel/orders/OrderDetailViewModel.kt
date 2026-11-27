@@ -17,6 +17,7 @@ import pe.edu.upn.reciclatru.domain.usecase.orders.CancelOrderUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.ChooseRecyclerUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderAcceptancesUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.GetOrderUseCase
+import pe.edu.upn.reciclatru.domain.usecase.orders.MarkOrderCollectedUseCase
 import pe.edu.upn.reciclatru.domain.usecase.orders.UploadOrderPhotosUseCase
 import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.Order
@@ -35,6 +36,7 @@ class OrderDetailViewModel @Inject constructor(
     private val chooseRecycler: ChooseRecyclerUseCase,
     private val uploadPhotos: UploadOrderPhotosUseCase,
     private val pendingPhotos: PendingPhotosStore,
+    private val markCollected: MarkOrderCollectedUseCase,
 ) : ViewModel() {
 
     private val orderId: String = savedStateHandle.get<String>(OrderIdArg).orEmpty()
@@ -110,6 +112,42 @@ class OrderDetailViewModel @Inject constructor(
                     )
                 }
                 if (notCancellable) onRefresh()
+            }
+        }
+    }
+
+    fun onCollectClick() {
+        val current = _uiState.value
+        if (current.collecting || current.order?.canMarkCollected != true) return
+        _uiState.update { it.copy(collectDialogVisible = true) }
+    }
+
+    fun onCollectDismissed() {
+        if (_uiState.value.collecting) return
+        _uiState.update { it.copy(collectDialogVisible = false) }
+    }
+
+    fun onCollectConfirmed() {
+        if (_uiState.value.collecting) return
+        _uiState.update { it.copy(collecting = true) }
+        viewModelScope.launch {
+            try {
+                val order = markCollected(orderId)
+                _uiState.update {
+                    it.copy(collecting = false, collectDialogVisible = false, order = order, message = CollectedMessage)
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                val notConfirmed = (error as? NetworkException)?.code == NotConfirmedCode
+                _uiState.update {
+                    it.copy(
+                        collecting = false,
+                        collectDialogVisible = false,
+                        message = if (notConfirmed) NotConfirmedMessage else error.toUserMessage(),
+                    )
+                }
+                if (notConfirmed) onRefresh()
             }
         }
     }
@@ -243,5 +281,8 @@ class OrderDetailViewModel @Inject constructor(
         private const val NotCancellableMessage = "Este pedido ya no se puede cancelar."
         private const val NotPendingCode = "ORDER_NOT_PENDING"
         private const val NotPendingMessage = "Este pedido ya no está pendiente."
+        private const val NotConfirmedCode = "ORDER_NOT_CONFIRMED"
+        private const val CollectedMessage = "Pedido recolectado"
+        private const val NotConfirmedMessage = "Este pedido ya no está confirmado."
     }
 }

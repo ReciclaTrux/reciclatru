@@ -190,6 +190,9 @@ class MyOrdersViewModelTest {
 
         override suspend fun chooseRecycler(orderId: String, acceptanceId: String): Order =
             error("No se usa en este test")
+
+        override suspend fun markCollected(id: String): Order =
+            error("No se usa en este test")
         val calls = mutableListOf<Pair<OrdersTab, String?>>()
 
         override suspend fun getMyOrders(tab: OrdersTab, cursor: String?): OrdersPage {

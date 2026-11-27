@@ -16,6 +16,7 @@ data class Order(
     val canCancel: Boolean = false,
     val canChooseRecycler: Boolean = false,
     val canEdit: Boolean = false,
+    val canMarkCollected: Boolean = false,
     val photos: List<OrderPhoto> = emptyList(),
 )
 
