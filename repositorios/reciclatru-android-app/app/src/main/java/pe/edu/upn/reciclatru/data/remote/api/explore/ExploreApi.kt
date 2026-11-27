@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.data.remote.api.explore
 
+import pe.edu.upn.reciclatru.data.remote.dto.explore.MyAcceptanceListOutputDto
 import pe.edu.upn.reciclatru.data.remote.dto.explore.ServicingOrderAvailabilityOutputDto
 import pe.edu.upn.reciclatru.data.remote.dto.orders.ServicingOrderOutputDto
 import retrofit2.http.GET
@@ -26,4 +27,11 @@ interface ExploreApi {
 
     @POST("servicing-order/{id}/acceptance/initiation")
     suspend fun acceptOrder(@Path("id") id: String): ServicingOrderOutputDto
+
+    @GET("servicing-order/acceptance/retrieval")
+    suspend fun getMyAcceptances(
+        @Query("tab") tab: String,
+        @Query("limit") limit: Int,
+        @Query("cursor") cursor: String?,
+    ): MyAcceptanceListOutputDto
 }

@@ -19,6 +19,7 @@ object AppRoutes {
     const val OrderPublishedResult = "order_published"
     const val AvailableOrderDetail = "explore/detail/{orderId}"
     const val OrderUnavailableResult = "order_unavailable"
+    const val MyAcceptances = "explore/accepted"
     const val EditOrder = "orders/edit/{orderId}"
     const val OrderEditResult = "order_edit_result"
     const val ExpiredArg = "expired"

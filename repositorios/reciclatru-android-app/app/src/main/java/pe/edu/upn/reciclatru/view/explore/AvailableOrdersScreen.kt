@@ -70,6 +70,7 @@ private const val ProfileDestination = "profile"
 
 @Composable
 fun AvailableOrdersScreen(
+    onOpenAccepted: () -> Unit,
     onOpenProfile: () -> Unit,
     onOpenOrder: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -133,6 +134,7 @@ fun AvailableOrdersScreen(
         onRefresh = viewModel::onRefresh,
         onRetry = viewModel::onRetry,
         onLoadMore = viewModel::onLoadMore,
+        onOpenAccepted = onOpenAccepted,
         onOpenProfile = onOpenProfile,
         onOpenOrder = onOpenOrder,
         modifier = modifier,
@@ -163,6 +165,7 @@ private fun AvailableOrdersContent(
     onRefresh: () -> Unit,
     onRetry: () -> Unit,
     onLoadMore: () -> Unit,
+    onOpenAccepted: () -> Unit,
     onOpenProfile: () -> Unit,
     onOpenOrder: (String) -> Unit,
     modifier: Modifier = Modifier,
@@ -179,7 +182,12 @@ private fun AvailableOrdersContent(
                     RtBottomNavItem(Icons.Rounded.Person, "Perfil", ProfileDestination),
                 ),
                 selected = AvailableDestination,
-                onSelect = { destination -> if (destination == ProfileDestination) onOpenProfile() },
+                onSelect = { destination ->
+                    when (destination) {
+                        AcceptedDestination -> onOpenAccepted()
+                        ProfileDestination -> onOpenProfile()
+                    }
+                },
             )
         },
         snackbarHost = { RtSnackbarHost(snackbarHostState) },
@@ -305,6 +313,7 @@ private fun AvailableOrdersPreview() {
             onRefresh = {},
             onRetry = {},
             onLoadMore = {},
+            onOpenAccepted = {},
             onOpenProfile = {},
             onOpenOrder = {},
         )
@@ -324,6 +333,7 @@ private fun AvailableOrdersPromptPreview() {
             onRefresh = {},
             onRetry = {},
             onLoadMore = {},
+            onOpenAccepted = {},
             onOpenProfile = {},
             onOpenOrder = {},
         )

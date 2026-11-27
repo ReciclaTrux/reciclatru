@@ -114,7 +114,7 @@ segunda tabla.
 | molécula | `RtSnackbar` | listo | `ui/designsystem/molecules/RtSnackbar.kt` |
 | molécula | `RtTabs` | listo | `ui/designsystem/molecules/RtTabs.kt` |
 | organismo | `RtAcceptanceCard` | listo | `ui/designsystem/organisms/RtAcceptanceCard.kt` |
-| organismo | `RtAcceptedOrderCard` | pendiente | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
+| organismo | `RtAcceptedOrderCard` | listo | `ui/designsystem/organisms/RtAcceptedOrderCard.kt` |
 | organismo | `RtActionBar` | listo | `ui/designsystem/organisms/RtActionBar.kt` |
 | organismo | `RtAvailableOrderCard` | listo | `ui/designsystem/organisms/RtAvailableOrderCard.kt` |
 | organismo | `RtBottomNav` | listo | `ui/designsystem/organisms/RtBottomNav.kt` |
