@@ -46,16 +46,11 @@ class OrderDetailViewModel @Inject constructor(
 
     init {
         load()
-        // La pantalla de editar deja su resultado en esta entrada de navegación al volver.
-        viewModelScope.launch {
-            savedStateHandle.getStateFlow<String?>(EditResultKey, null).collect { message ->
-                if (message != null) {
-                    savedStateHandle[EditResultKey] = null
-                    _uiState.update { it.copy(message = message) }
-                    onRefresh()
-                }
-            }
-        }
+    }
+
+    fun onEdited(message: String) {
+        _uiState.update { it.copy(message = message) }
+        onRefresh()
     }
 
     fun onRetry() {
@@ -273,7 +268,6 @@ class OrderDetailViewModel @Inject constructor(
 
     companion object {
         const val OrderIdArg = "orderId"
-        const val EditResultKey = "order_edit_result"
         private const val NotCancellableCode = "ORDER_NOT_CANCELLABLE"
         private const val CancelledMessage = "Pedido cancelado"
         private const val PhotosUploadedMessage = "Fotos subidas"

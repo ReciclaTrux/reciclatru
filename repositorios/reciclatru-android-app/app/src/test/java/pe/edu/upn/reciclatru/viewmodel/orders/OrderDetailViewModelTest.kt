@@ -205,17 +205,15 @@ class OrderDetailViewModelTest {
     @Test
     fun `al volver de editar muestra el mensaje y recarga el pedido`() = runTest(mainDispatcherRule.testDispatcher) {
         val repository = FakeOrdersRepository()
-        val handle = SavedStateHandle(mapOf(OrderDetailViewModel.OrderIdArg to "p1"))
-        val viewModel = createViewModel(repository, handle = handle)
+        val viewModel = createViewModel(repository)
         advanceUntilIdle()
         val callsBefore = repository.getCalls
 
-        handle[OrderDetailViewModel.EditResultKey] = "Cambios guardados"
+        viewModel.onEdited("Cambios guardados")
         advanceUntilIdle()
 
         assertEquals("Cambios guardados", viewModel.uiState.value.message)
         assertEquals(callsBefore + 1, repository.getCalls)
-        assertNull(handle.get<String>(OrderDetailViewModel.EditResultKey))
     }
 
     private fun acceptance(id: String, name: String) = OrderAcceptance(

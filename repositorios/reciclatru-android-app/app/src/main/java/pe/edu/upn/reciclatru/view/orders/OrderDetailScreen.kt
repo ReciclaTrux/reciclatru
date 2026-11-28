@@ -76,10 +76,19 @@ fun OrderDetailScreen(
     onBack: () -> Unit,
     onEdit: (String) -> Unit,
     modifier: Modifier = Modifier,
+    editResult: String? = null,
+    onEditResultHandled: () -> Unit = {},
     viewModel: OrderDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(editResult) {
+        editResult?.let { message ->
+            viewModel.onEdited(message)
+            onEditResultHandled()
+        }
+    }
 
     LaunchedEffect(state.message) {
         state.message?.let { message ->
