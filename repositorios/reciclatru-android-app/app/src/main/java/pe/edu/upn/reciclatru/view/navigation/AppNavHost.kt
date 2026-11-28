@@ -137,10 +137,15 @@ fun AppNavHost(
         composable(
             route = AppRoutes.OrderDetail,
             arguments = listOf(navArgument(AppRoutes.OrderIdArg) { type = NavType.StringType }),
-        ) {
+        ) { entry ->
+            val editResult by entry.savedStateHandle
+                .getStateFlow<String?>(AppRoutes.OrderEditResult, null)
+                .collectAsStateWithLifecycle()
             OrderDetailScreen(
                 onBack = { navController.popBackStack() },
                 onEdit = { orderId -> navController.navigate(AppRoutes.editOrder(orderId)) },
+                editResult = editResult,
+                onEditResultHandled = { entry.savedStateHandle[AppRoutes.OrderEditResult] = null },
             )
         }
         composable(
