@@ -20,6 +20,7 @@ import pe.edu.upn.reciclatru.domain.usecase.explore.GetAvailableOrderDetailUseCa
 import pe.edu.upn.reciclatru.model.explore.AvailableOrderDetail
 import pe.edu.upn.reciclatru.model.explore.AvailableOrdersPage
 import pe.edu.upn.reciclatru.model.explore.GeoPoint
+import pe.edu.upn.reciclatru.model.explore.PickupPoint
 import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.OrderContact
 import pe.edu.upn.reciclatru.model.orders.OrderItem
@@ -192,6 +193,57 @@ class AvailableOrderDetailViewModelTest {
         assertTrue(viewModel.uiState.value.order?.alreadyAccepted == true)
     }
 
+    @Test
+    fun `deslizar hacia abajo muestra el estado actual del pedido`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeExploreRepository(accepted = true)
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+        val cancelled = viewModel.uiState.value.order!!.copy(status = OrderStatus.Cancelled, neighbor = null)
+
+        repository.nextDetail = cancelled
+        viewModel.onRefresh()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.refreshing)
+        assertEquals(OrderStatus.Cancelled, viewModel.uiState.value.order?.status)
+        assertNull(viewModel.uiState.value.order?.neighbor)
+    }
+
+    @Test
+    fun `si falla al actualizar mantiene el pedido y avisa`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeExploreRepository(accepted = true)
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+
+        repository.detailError = noConnection()
+        viewModel.onRefresh()
+        advanceUntilIdle()
+
+        assertEquals("o1", viewModel.uiState.value.order?.id)
+        assertNull(viewModel.uiState.value.loadError)
+        assertEquals(NoConnectionMessage, viewModel.uiState.value.message)
+    }
+
+    @Test
+    fun `al volver a la pantalla se actualiza en silencio`() = runTest(mainDispatcherRule.testDispatcher) {
+        val repository = FakeExploreRepository(accepted = true)
+        val viewModel = createViewModel(repository)
+        advanceUntilIdle()
+        val pickup = PickupPoint("Av. Larco 1250", null, -8.13, -79.02)
+
+        repository.nextDetail = viewModel.uiState.value.order!!.copy(
+            status = OrderStatus.Confirmed,
+            acceptanceStatus = AcceptanceStatus.Chosen,
+            pickup = pickup,
+        )
+        viewModel.onResume()
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.loading)
+        assertEquals(pickup, viewModel.uiState.value.order?.pickup)
+        assertEquals(2, repository.detailLocations.size)
+    }
+
     private fun createViewModel(
         repository: ExploreRepository,
         location: GeoPoint? = null,
@@ -225,6 +277,7 @@ class AvailableOrderDetailViewModelTest {
         var acceptError: Exception? = null,
         private val accepted: Boolean = false,
     ) : ExploreRepository {
+        var nextDetail: AvailableOrderDetail? = null
         val detailLocations = mutableListOf<GeoPoint?>()
         var acceptCalls = 0
 
@@ -234,7 +287,7 @@ class AvailableOrderDetailViewModelTest {
         override suspend fun getOrderDetail(orderId: String, location: GeoPoint?): AvailableOrderDetail {
             detailLocations += location
             detailError?.let { throw it }
-            return detail(orderId, accepted)
+            return nextDetail ?: detail(orderId, accepted)
         }
 
         override suspend fun acceptOrder(orderId: String): AvailableOrderDetail {

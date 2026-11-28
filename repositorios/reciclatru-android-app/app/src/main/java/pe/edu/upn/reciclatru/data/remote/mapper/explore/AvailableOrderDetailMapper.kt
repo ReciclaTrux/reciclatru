@@ -1,5 +1,6 @@
 package pe.edu.upn.reciclatru.data.remote.mapper.explore
 
+import pe.edu.upn.reciclatru.data.remote.dto.orders.PickupDetailDto
 import pe.edu.upn.reciclatru.data.remote.dto.orders.ServicingOrderOutputDto
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toAcceptanceStatus
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toInstantOrNull
@@ -8,6 +9,7 @@ import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrderItem
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrderPhoto
 import pe.edu.upn.reciclatru.data.remote.mapper.orders.toOrderStatus
 import pe.edu.upn.reciclatru.model.explore.AvailableOrderDetail
+import pe.edu.upn.reciclatru.model.explore.PickupPoint
 import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 
 fun ServicingOrderOutputDto.toAvailableOrderDetail(): AvailableOrderDetail? {
@@ -30,5 +32,17 @@ fun ServicingOrderOutputDto.toAvailableOrderDetail(): AvailableOrderDetail? {
         acceptanceStatus = acceptanceStatus,
         photos = record.photos.orEmpty().mapNotNull { it.toOrderPhoto() },
         neighbor = record.counterpart?.toOrderContact(),
+        pickup = record.pickup?.toPickupPoint(),
+    )
+}
+
+private fun PickupDetailDto.toPickupPoint(): PickupPoint? {
+    val latitude = latitude ?: return null
+    val longitude = longitude ?: return null
+    return PickupPoint(
+        address = address?.takeIf { it.isNotBlank() },
+        reference = reference?.takeIf { it.isNotBlank() },
+        latitude = latitude,
+        longitude = longitude,
     )
 }
