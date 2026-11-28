@@ -23,6 +23,15 @@ data class AvailableOrderDetail(
     val acceptanceStatus: AcceptanceStatus?,
     val photos: List<OrderPhoto>,
     val neighbor: OrderContact?,
+    val pickup: PickupPoint? = null,
 ) {
     val alreadyAccepted: Boolean get() = acceptanceStatus != null
 }
+
+/** Datos para ir a recoger (HU-15): solo llegan al reciclador elegido con el pedido Confirmado. */
+data class PickupPoint(
+    val address: String?,
+    val reference: String?,
+    val latitude: Double,
+    val longitude: Double,
+)

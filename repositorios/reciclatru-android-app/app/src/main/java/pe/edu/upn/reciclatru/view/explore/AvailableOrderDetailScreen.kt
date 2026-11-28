@@ -2,6 +2,7 @@ package pe.edu.upn.reciclatru.view.explore
 
 import android.content.Intent
 import android.net.Uri
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -21,15 +22,19 @@ import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Groups
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.NearMe
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,8 +42,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import java.time.Instant
 import pe.edu.upn.reciclatru.model.explore.AvailableOrderDetail
+import pe.edu.upn.reciclatru.model.explore.PickupPoint
 import pe.edu.upn.reciclatru.model.orders.AcceptanceStatus
 import pe.edu.upn.reciclatru.model.orders.OrderContact
 import pe.edu.upn.reciclatru.model.orders.OrderItem
@@ -49,6 +57,7 @@ import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButton
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtButtonVariant
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinner
 import pe.edu.upn.reciclatru.ui.designsystem.atoms.RtSpinnerSize
+import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtAddressBlock
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtConfirmDialog
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtContactRow
 import pe.edu.upn.reciclatru.ui.designsystem.molecules.RtErrorState
@@ -72,7 +81,6 @@ import pe.edu.upn.reciclatru.view.orders.formatPublishedDate
 import pe.edu.upn.reciclatru.view.orders.formatWeightKg
 import pe.edu.upn.reciclatru.viewmodel.explore.AvailableOrderDetailUiState
 import pe.edu.upn.reciclatru.viewmodel.explore.AvailableOrderDetailViewModel
-import java.time.Instant
 
 /**
  * Detalle de un pedido para el reciclador: lo que ve antes de aceptar (HU-11) y después de
@@ -92,7 +100,13 @@ fun AvailableOrderDetailScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val snackbarHostState = remember { SnackbarHostState() }
+    val context = LocalContext.current
+    var directionsFailed by remember { mutableStateOf(false) }
 
+    LifecycleResumeEffect(Unit) {
+        viewModel.onResume()
+        onPauseOrDispose { }
+    }
     LaunchedEffect(state.unavailable) {
         if (state.unavailable) onUnavailable()
     }
@@ -109,8 +123,42 @@ fun AvailableOrderDetailScreen(
         onBack = onBack,
         onRetry = viewModel::onRetry,
         onAccept = viewModel::onAcceptClick,
+        onRefresh = viewModel::onRefresh,
+        onDirections = {
+            val order = state.order
+            val pickup = order?.pickup
+            if (order != null && pickup != null) {
+                val label = order.neighbor?.fullName ?: order.zone.ifBlank { "Pedido" }
+                if (!openDirections(context, pickup, label)) directionsFailed = true
+            }
+        },
+        onCopyAddress = {
+            val order = state.order
+            val pickup = order?.pickup
+            if (order != null && pickup != null) {
+                copyToClipboard(context, pickup.copyText(order.zone))
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) viewModel.onMessage(CopiedMessage)
+            }
+        },
         modifier = modifier,
     )
+
+    val pickupOrder = state.order
+    val pickup = pickupOrder?.pickup
+    if (directionsFailed && pickupOrder != null && pickup != null) {
+        RtConfirmDialog(
+            title = "No pudimos abrir los mapas",
+            message = "Copia la dirección para buscarla en otra app: ${pickup.copyText(pickupOrder.zone)}",
+            confirmLabel = "Copiar dirección",
+            onConfirm = {
+                copyToClipboard(context, pickup.copyText(pickupOrder.zone))
+                directionsFailed = false
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) viewModel.onMessage(CopiedMessage)
+            },
+            onDismiss = { directionsFailed = false },
+            modifier = Modifier.testTag("dialog_sin_mapas"),
+        )
+    }
 
     if (state.confirmDialogVisible) {
         RtConfirmDialog(
@@ -139,12 +187,15 @@ fun AvailableOrderDetailScreen(
     }
 }
 
+private const val CopiedMessage = "Dirección copiada"
+
 private val ClosedStates = setOf(
     RtAcceptanceState.NotChosen,
     RtAcceptanceState.CancelledByNeighbor,
     RtAcceptanceState.Collected,
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AvailableOrderDetailContent(
     state: AvailableOrderDetailUiState,
@@ -153,16 +204,22 @@ private fun AvailableOrderDetailContent(
     onRetry: () -> Unit,
     onAccept: () -> Unit,
     modifier: Modifier = Modifier,
+    onRefresh: () -> Unit = {},
+    onDirections: () -> Unit = {},
+    onCopyAddress: () -> Unit = {},
 ) {
     val order = state.order
+    val pickup = order?.pickup
     Scaffold(
         modifier = modifier.fillMaxSize(),
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = { RtTopAppBar(title = "Detalle del pedido", onBack = onBack) },
+        topBar = {
+            RtTopAppBar(title = if (pickup != null) "Ir a recoger" else "Detalle del pedido", onBack = onBack)
+        },
         snackbarHost = { RtSnackbarHost(snackbarHostState) },
         bottomBar = {
             val closed = order?.alreadyAccepted == true && order.acceptanceState() in ClosedStates
-            if (!state.loading && order != null && !closed) {
+            if (!state.loading && order != null && !closed && pickup == null) {
                 RtActionBar(
                     primary = {
                         if (order.alreadyAccepted) {
@@ -205,15 +262,24 @@ private fun AvailableOrderDetailContent(
                     onRetry = onRetry,
                 )
             }
-            else -> Column(
-                modifier = Modifier
-                    .padding(innerPadding)
-                    .fillMaxSize()
-                    .verticalScroll(rememberScrollState())
-                    .padding(RtSpacing.s4),
-                verticalArrangement = Arrangement.spacedBy(RtSpacing.s4),
+            else -> PullToRefreshBox(
+                isRefreshing = state.refreshing,
+                onRefresh = onRefresh,
+                modifier = Modifier.padding(innerPadding).fillMaxSize(),
             ) {
-                if (order.alreadyAccepted) AcceptedBody(order) else AvailableBody(order)
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState())
+                        .padding(RtSpacing.s4),
+                    verticalArrangement = Arrangement.spacedBy(RtSpacing.s4),
+                ) {
+                    when {
+                        pickup != null -> PickupBody(order, pickup, onDirections, onCopyAddress)
+                        order.alreadyAccepted -> AcceptedBody(order)
+                        else -> AvailableBody(order)
+                    }
+                }
             }
         }
     }
@@ -245,6 +311,87 @@ private fun AvailableBody(order: AvailableOrderDetail) {
         tone = RtInlineAlertTone.Info,
         message = "Verás el nombre y celular del vecino al aceptar. La dirección exacta solo se muestra si te elige.",
         modifier = Modifier.testTag("aviso_privacidad"),
+    )
+}
+
+@Composable
+private fun PickupBody(
+    order: AvailableOrderDetail,
+    pickup: PickupPoint,
+    onDirections: () -> Unit,
+    onCopyAddress: () -> Unit,
+) {
+    val context = LocalContext.current
+    val neighbor = order.neighbor
+    val shape = RoundedCornerShape(RtRadius.lg)
+    val cardModifier = Modifier
+        .fillMaxWidth()
+        .clip(shape)
+        .background(MaterialTheme.colorScheme.surface)
+        .border(RtStroke.divider, MaterialTheme.colorScheme.outlineVariant, shape)
+        .padding(RtSpacing.s4)
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(RtSpacing.s3),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            text = order.zone.ifBlank { "Trujillo" },
+            style = MaterialTheme.typography.titleLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f).testTag("zona_pedido"),
+        )
+        RtAcceptanceChip(state = RtAcceptanceState.Chosen, modifier = Modifier.testTag("chip_aceptacion"))
+    }
+    RtAddressBlock(
+        address = pickup.address,
+        district = order.zone.ifBlank { "Trujillo" },
+        reference = pickup.reference,
+        lat = pickup.latitude,
+        lng = pickup.longitude,
+        onDirections = onDirections,
+        onCopy = onCopyAddress,
+        modifier = cardModifier.testTag("bloque_direccion"),
+    )
+    if (neighbor != null) {
+        Column(
+            modifier = cardModifier.testTag("tarjeta_vecino"),
+            verticalArrangement = Arrangement.spacedBy(RtSpacing.s3),
+        ) {
+            Text(
+                text = "Vecino",
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            RtContactRow(
+                name = neighbor.fullName,
+                subtitle = neighbor.phone,
+                phone = neighbor.phone,
+                onCall = {
+                    runCatching {
+                        context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:${neighbor.phone}")))
+                    }
+                },
+            )
+        }
+    }
+    MaterialsCard(
+        items = order.items,
+        totalWeightKg = order.totalWeightKg,
+        modifier = Modifier.testTag("materiales_pedido"),
+    )
+    if (order.photos.isNotEmpty()) {
+        RtPhotoGallery(
+            photos = order.photos.map { it.url },
+            modifier = Modifier.testTag("galeria_fotos"),
+        )
+    }
+    RtInlineAlert(
+        tone = RtInlineAlertTone.Info,
+        title = "Cuando entregues el material",
+        message = "El vecino marcará el pedido como Recolectado y se cerrará.",
+        modifier = Modifier.testTag("aviso_recolectado"),
     )
 }
 
@@ -458,6 +605,23 @@ private fun AvailableOrderDetailAcceptedPreview() {
             order = previewDetail(
                 acceptanceStatus = AcceptanceStatus.Accepted,
                 neighbor = OrderContact("Ana Torres", "948120337"),
+            ),
+        ),
+    )
+}
+
+@Preview(name = "Ir a recoger", showBackground = true, heightDp = 900)
+@Composable
+private fun AvailableOrderDetailPickupPreview() {
+    AvailableOrderDetailPreviewHost(
+        AvailableOrderDetailUiState(
+            loading = false,
+            order = previewDetail(
+                acceptanceStatus = AcceptanceStatus.Chosen,
+                neighbor = OrderContact("Ana Torres", "948120337"),
+            ).copy(
+                status = OrderStatus.Confirmed,
+                pickup = PickupPoint("Av. Larco 1250", "Puerta negra, frente al parque", -8.1342, -79.0267),
             ),
         ),
     )

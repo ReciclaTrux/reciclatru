@@ -67,6 +67,54 @@ class AvailableOrderDetailMapperTest {
     }
 
     @Test
+    fun `el reciclador elegido recibe la direccion para ir a recoger`() {
+        val json = """
+            { "servicingOrderInstanceRecord": {
+                "id": "o1", "status": "CONFIRMED", "items": [], "totalWeightKg": 8.0,
+                "acceptanceStatus": "CHOSEN",
+                "counterpart": { "fullName": "Ana Torres", "phone": "948120337" },
+                "pickup": { "address": "Av. Larco 1250", "reference": "Puerta negra",
+                            "latitude": -8.1342, "longitude": -79.0267 },
+                "availableActions": ["GO_PICKUP"]
+              } }
+        """.trimIndent()
+
+        val pickup = gson.fromJson(json, ServicingOrderOutputDto::class.java).toAvailableOrderDetail()?.pickup
+
+        assertEquals("Av. Larco 1250", pickup?.address)
+        assertEquals("Puerta negra", pickup?.reference)
+        assertEquals(-8.1342, pickup?.latitude ?: 0.0, 0.0)
+        assertEquals(-79.0267, pickup?.longitude ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `sin direccion escrita ni referencia quedan vacias`() {
+        val json = """
+            { "servicingOrderInstanceRecord": {
+                "id": "o1", "status": "CONFIRMED", "items": [], "totalWeightKg": 8.0,
+                "pickup": { "address": null, "reference": " ", "latitude": -8.1, "longitude": -79.0 }
+              } }
+        """.trimIndent()
+
+        val pickup = gson.fromJson(json, ServicingOrderOutputDto::class.java).toAvailableOrderDetail()?.pickup
+
+        assertNull(pickup?.address)
+        assertNull(pickup?.reference)
+        assertEquals(-8.1, pickup?.latitude ?: 0.0, 0.0)
+    }
+
+    @Test
+    fun `sin datos de recojo no hay direccion`() {
+        val json = """
+            { "servicingOrderInstanceRecord": {
+                "id": "o1", "status": "CANCELLED", "items": [], "totalWeightKg": 8.0, "pickup": null
+              } }
+        """.trimIndent()
+
+        assertNull(gson.fromJson(json, ServicingOrderOutputDto::class.java).toAvailableOrderDetail()?.pickup)
+    }
+
+    @Test
     fun `una respuesta sin registro no se convierte`() {
         assertNull(gson.fromJson("{}", ServicingOrderOutputDto::class.java).toAvailableOrderDetail())
     }

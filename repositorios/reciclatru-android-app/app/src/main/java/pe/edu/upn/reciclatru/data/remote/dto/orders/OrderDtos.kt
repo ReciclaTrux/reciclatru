@@ -35,6 +35,14 @@ data class ServicingOrderRecordDto(
     @SerializedName("approximateDistanceKm") val approximateDistanceKm: Double? = null,
     @SerializedName("alreadyAccepted") val alreadyAccepted: Boolean? = null,
     @SerializedName("acceptanceStatus") val acceptanceStatus: String? = null,
+    @SerializedName("pickup") val pickup: PickupDetailDto? = null,
+)
+
+data class PickupDetailDto(
+    @SerializedName("address") val address: String? = null,
+    @SerializedName("reference") val reference: String? = null,
+    @SerializedName("latitude") val latitude: Double? = null,
+    @SerializedName("longitude") val longitude: Double? = null,
 )
 
 data class OrderPhotoDto(

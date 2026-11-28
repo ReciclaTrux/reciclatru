@@ -41,6 +41,41 @@ class AvailableOrderDetailViewModel @Inject constructor(
         load()
     }
 
+    fun onRefresh() {
+        val current = _uiState.value
+        if (current.loading || current.refreshing || current.order == null) return
+        _uiState.update { it.copy(refreshing = true) }
+        viewModelScope.launch {
+            try {
+                val order = getOrderDetail(orderId, location)
+                _uiState.update { it.copy(refreshing = false, order = order) }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                _uiState.update { it.copy(refreshing = false, message = error.toUserMessage()) }
+            }
+        }
+    }
+
+    fun onResume() {
+        val current = _uiState.value
+        if (current.loading || current.refreshing || current.order == null) return
+        viewModelScope.launch {
+            try {
+                val order = getOrderDetail(orderId, location)
+                _uiState.update { it.copy(order = order) }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (error: Exception) {
+                return@launch
+            }
+        }
+    }
+
+    fun onMessage(message: String) {
+        _uiState.update { it.copy(message = message) }
+    }
+
     fun onAcceptClick() {
         val current = _uiState.value
         if (current.accepting || current.confirmDialogVisible) return
