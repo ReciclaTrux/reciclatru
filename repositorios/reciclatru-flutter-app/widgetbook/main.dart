@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_avatar.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_badge.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_button.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_icon_button.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_spinner.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_text_field.dart';
-import 'package:reciclatru/core/design_system/theme/rt_colors.dart';
-import 'package:reciclatru/core/design_system/theme/rt_spacing.dart';
-import 'package:reciclatru/core/design_system/theme/rt_theme.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_avatar.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_badge.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_button.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_icon_button.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_spinner.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_text_field.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_colors.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_spacing.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_theme.dart';
 import 'package:maplibre_gl/maplibre_gl.dart';
 import 'package:widgetbook/widgetbook.dart';
 

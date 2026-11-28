@@ -1,20 +1,20 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:reciclatru/core/design_system/atoms/rt_button.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_confirm_dialog.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_contact_row.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_error_state.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_inline_alert.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_role_selector.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_search_field.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_snackbar.dart';
-import 'package:reciclatru/core/design_system/organisms/rt_action_bar.dart';
-import 'package:reciclatru/core/design_system/organisms/rt_bottom_nav.dart';
-import 'package:reciclatru/core/design_system/organisms/rt_map_picker.dart';
-import 'package:reciclatru/core/design_system/organisms/rt_top_app_bar.dart';
-import 'package:reciclatru/core/design_system/theme/rt_colors.dart';
-import 'package:reciclatru/core/design_system/theme/rt_spacing.dart';
+import 'package:reciclatru/ui/designsystem/atoms/rt_button.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_confirm_dialog.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_contact_row.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_error_state.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_inline_alert.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_role_selector.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_search_field.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_snackbar.dart';
+import 'package:reciclatru/ui/designsystem/organisms/rt_action_bar.dart';
+import 'package:reciclatru/ui/designsystem/organisms/rt_bottom_nav.dart';
+import 'package:reciclatru/ui/designsystem/organisms/rt_map_picker.dart';
+import 'package:reciclatru/ui/designsystem/organisms/rt_top_app_bar.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_colors.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_spacing.dart';
 import 'package:widgetbook/widgetbook.dart';
 
 final List<WidgetbookNode> lote2Directories = <WidgetbookNode>[

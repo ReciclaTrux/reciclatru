@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:reciclatru/core/design_system/molecules/rt_search_field.dart';
-import 'package:reciclatru/core/design_system/theme/rt_theme.dart';
+import 'package:reciclatru/ui/designsystem/molecules/rt_search_field.dart';
+import 'package:reciclatru/ui/designsystem/theme/rt_theme.dart';
 
 void main() {
   testWidgets('RtSearchField selecciona una sugerencia', (tester) async {
